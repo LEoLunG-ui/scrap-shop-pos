@@ -346,7 +346,9 @@ html.ui-scaled .pane{max-height:none;overflow:visible;}
 /* weigh panel */
 .weigh-head{display:flex;align-items:center;justify-content:space-between;}
 .weigh-item-name{font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--item-ink);}
-.weigh-item-cat{font-size:11.5px;color:var(--ink-muted);}
+.weigh-item-cat{font-size:11.5px;color:var(--ink-muted);display:flex;align-items:center;gap:5px;}
+.cat-dot{width:8px;height:8px;border-radius:99px;flex:none;display:inline-block;background:var(--accent);}
+.cat-color-input{width:34px;height:30px;padding:2px;border:1px solid var(--border-strong);border-radius:5px;background:var(--surface-2);cursor:pointer;}
 .weigh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px;}
 @media (max-width:1350px){.weigh-grid{grid-template-columns:repeat(2,1fr);}}
 .weigh-net{
@@ -401,7 +403,7 @@ table.bill-table tr.sub-row.editing td{background:var(--accent-soft);}
 .modal-body{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
 .modal-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
 
-.settings-cat-title{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-muted);font-weight:700;margin:10px 0 5px;}
+.settings-cat-title{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-muted);font-weight:700;margin:10px 0 5px;display:flex;align-items:center;gap:6px;}
 .settings-row{display:grid;grid-template-columns:1.6fr 90px 90px 60px 34px 34px;gap:8px;align-items:center;padding:6px 0;}
 .settings-header{display:grid;grid-template-columns:1.6fr 90px 90px 60px 34px 34px;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-faint);padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:3px;font-weight:700;}
 .settings-header span:not(:first-child){text-align:center;}
@@ -624,14 +626,15 @@ function loadLocalUiScale(){ try{ const v = parseFloat(localStorage.getItem(UI_S
 function saveLocalUiScale(v){ try{ localStorage.setItem(UI_SCALE_KEY, String(v)); }catch(e){} }
 
 const DEFAULT_CATEGORIES = [
-  { id:"scrap", label:"เศษเหล็ก", icon:"magnet" },
-  { id:"paper", label:"กระดาษ", icon:"fileText" },
-  { id:"plastic", label:"พลาสติก", icon:"bottle" },
-  { id:"precious", label:"โลหะมีค่า", icon:"gem" },
-  { id:"glass", label:"แก้ว", icon:"cup" },
-  { id:"electronics", label:"เครื่องใช้ไฟฟ้า/อิเล็กทรอนิกส์", icon:"zap" },
-  { id:"misc", label:"อื่นๆ", icon:"layers" },
+  { id:"scrap", label:"เศษเหล็ก", icon:"magnet", color:"#64748B" },
+  { id:"paper", label:"กระดาษ", icon:"fileText", color:"#B08968" },
+  { id:"plastic", label:"พลาสติก", icon:"bottle", color:"#3B82F6" },
+  { id:"precious", label:"โลหะมีค่า", icon:"gem", color:"#D4A017" },
+  { id:"glass", label:"แก้ว", icon:"cup", color:"#06B6D4" },
+  { id:"electronics", label:"เครื่องใช้ไฟฟ้า/อิเล็กทรอนิกส์", icon:"zap", color:"#8B5CF6" },
+  { id:"misc", label:"อื่นๆ", icon:"layers", color:"#9CA3AF" },
 ];
+const CATEGORY_COLOR_PALETTE = ["#64748B","#B08968","#3B82F6","#D4A017","#06B6D4","#8B5CF6","#EC4899","#22C55E","#EF4444","#9CA3AF"];
 
 // รายการสินค้าตั้งต้นครอบคลุมของที่ร้านรับซื้อของเก่าทั่วไปมักรับซื้อ
 // ราคาที่ตั้งไว้เป็นเพียงตัวเลขเริ่มต้นโดยประมาณ ควรปรับให้ตรงกับราคาตลาดจริงที่หน้าร้าน
@@ -883,6 +886,7 @@ function App(){
   },[uiScale]);
 
   const catLabelMap = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c.label])), [categories]);
+  const catColorMap = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c.color||"var(--accent)"])), [categories]);
 
   useEffect(()=>{
     if(hasDesktop){
@@ -1295,7 +1299,8 @@ function App(){
   function addCategory(name){
     const label = name.trim();
     if(!label) return;
-    const cat = { id:uid(), label, icon:"layers" };
+    const color = CATEGORY_COLOR_PALETTE[categories.length % CATEGORY_COLOR_PALETTE.length];
+    const cat = { id:uid(), label, icon:"layers", color };
     setCategories(list=>[...list, cat]);
     wsSend({type:"updateCategory", category:cat});
     push(`เพิ่มหมวดหมู่ "${label}" แล้ว`,"ok");
@@ -1304,6 +1309,14 @@ function App(){
     setCategories(list=>list.map(c=>{
       if(c.id!==id) return c;
       const updated = {...c, label};
+      wsSend({type:"updateCategory", category:updated});
+      return updated;
+    }));
+  }
+  function updateCategoryColor(id, color){
+    setCategories(list=>list.map(c=>{
+      if(c.id!==id) return c;
+      const updated = {...c, color};
       wsSend({type:"updateCategory", category:updated});
       return updated;
     }));
@@ -1491,7 +1504,7 @@ function App(){
             netWeight={netWeight} lineAmount={lineAmount} addLine={addLine}
             billItems={billItems} editLine={editLine} removeLine={removeLine} totals={totals}
             priceMode={priceMode} editingId={editingId} onCancelEdit={resetWeighForm}
-            activeInputRef={activeInputRef} catLabelMap={catLabelMap}
+            activeInputRef={activeInputRef} catLabelMap={catLabelMap} catColorMap={catColorMap}
           />
           <RightPane
             totals={totals} selectedCustomer={selectedCustomer}
@@ -1507,7 +1520,8 @@ function App(){
             onUpdatePrice={updateCatalogPrice} onToggleQuick={toggleQuick}
             onAddItem={addCatalogItem} onRename={renameCatalogItem} onDelete={deleteCatalogItem}
             onUpdateCode={(id,code)=>updateCatalogText(id,"code",code)}
-            onAddCategory={addCategory} onRenameCategory={renameCategory} onDeleteCategory={deleteCategory}/>
+            onAddCategory={addCategory} onRenameCategory={renameCategory} onDeleteCategory={deleteCategory}
+            onUpdateCategoryColor={updateCategoryColor}/>
         </div>
       )}
 
@@ -1746,8 +1760,9 @@ function LeftPane({customers, search, setSearch, searchResults, selectedCustomer
             <span className="cat-ico"><Icon name="package" size={16}/></span>ทั้งหมด
           </button>
           {categories.map(c=>(
-            <button key={c.id} className={"cat-btn "+(selectedCategory===c.id?"active":"")} onClick={()=>setSelectedCategory(c.id)}>
-              <span className="cat-ico"><Icon name={c.icon} size={16}/></span>{c.label}
+            <button key={c.id} className={"cat-btn "+(selectedCategory===c.id?"active":"")} onClick={()=>setSelectedCategory(c.id)}
+              style={selectedCategory===c.id ? {background:c.color||"var(--accent)"} : undefined}>
+              <span className="cat-ico" style={{color: selectedCategory===c.id ? undefined : (c.color||"var(--accent)")}}><Icon name={c.icon} size={16}/></span>{c.label}
             </button>
           ))}
         </div>
@@ -1763,7 +1778,7 @@ function LeftPane({customers, search, setSearch, searchResults, selectedCustomer
 /* ============================= CENTER PANE ============================= */
 function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearch, selectedCategory, activeItem, activeItemId, pickItem,
   gross,setGross,tare,setTare,deductPct,setDeductPct,qty,setQty,priceOverride,setPriceOverride,
-  netWeight, lineAmount, addLine, billItems, editLine, removeLine, totals, priceMode, editingId, onCancelEdit, activeInputRef, catLabelMap}){
+  netWeight, lineAmount, addLine, billItems, editLine, removeLine, totals, priceMode, editingId, onCancelEdit, activeInputRef, catLabelMap, catColorMap}){
 
   const onFocusTrack = (e)=>{ if(activeInputRef) activeInputRef.current = e.target; };
   const onEnterSubmit = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); addLine(); } };
@@ -1821,7 +1836,7 @@ function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearc
           <div className="panel-title"><Icon name="star" size={13}/>ปุ่มลัด — สินค้าที่เข้าบ่อย</div>
           <div className="item-grid">
             {quickItems.map(it=>(
-              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} />
+              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} categoryColor={catColorMap[it.category]} />
             ))}
           </div>
         </div>
@@ -1839,7 +1854,7 @@ function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearc
         ) : (
           <div className="item-grid">
             {visibleItems.map(it=>(
-              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} />
+              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} categoryColor={catColorMap[it.category]} />
             ))}
           </div>
         )}
@@ -1853,7 +1868,10 @@ function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearc
                 {editingId && <span className="round-badge" style={{marginRight:7}}>กำลังแก้ไข</span>}
                 {activeItem.name}
               </div>
-              <div className="weigh-item-cat">{catLabelMap[activeItem.category]} · หน่วย {activeItem.unit} · ใช้{priceMode==="regular"?"ราคาประจำ":"ราคาจร"}</div>
+              <div className="weigh-item-cat">
+                <span className="cat-dot" style={{background:catColorMap[activeItem.category]}}/>
+                {catLabelMap[activeItem.category]} · หน่วย {activeItem.unit} · ใช้{priceMode==="regular"?"ราคาประจำ":"ราคาจร"}
+              </div>
             </div>
           </div>
 
@@ -1964,7 +1982,9 @@ function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearc
                               <span className="round-badge">{g.lines.length} รอบ</span>
                             </button>
                           ) : <span className="item-name-ink">{g.name}</span>}
-                          <div style={{fontSize:10.5,color:"var(--ink-faint)", paddingLeft: multi?19:0}}>{catLabelMap[g.category]}</div>
+                          <div style={{fontSize:10.5,color:"var(--ink-faint)", paddingLeft: multi?19:0, display:"flex",alignItems:"center",gap:5}}>
+                            <span className="cat-dot" style={{background:catColorMap[g.category]}}/>{catLabelMap[g.category]}
+                          </div>
                         </td>
                         <td className="tabular">{g.mode==="weight" ? `${kg(g.netSum)} กก.` : `${g.qtySum} ${g.unit}`}</td>
                         <td className="tabular">
@@ -2018,9 +2038,10 @@ function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearc
   );
 }
 
-function ItemCard({item, priceMode, active, onPick}){
+function ItemCard({item, priceMode, active, onPick, categoryColor}){
   return (
-    <button type="button" className={"item-card "+(active?"selected":"")} onClick={onPick}>
+    <button type="button" className={"item-card "+(active?"selected":"")} onClick={onPick}
+      style={categoryColor ? {borderLeft:`4px solid ${categoryColor}`} : undefined}>
       {item.code && <span className="item-card-code tabular">{item.code}</span>}
       <span className="item-card-name">{item.name}</span>
       <span className="item-card-price tabular">{money(priceOf(item, priceMode))} <span className="unit">฿/{item.unit}</span></span>
@@ -2319,7 +2340,7 @@ function AddCustomerModal({onClose, onSave, initialData}){
 }
 
 function InventoryPage({catalog, categories, onUpdatePrice, onToggleQuick, onAddItem, onRename, onDelete, onUpdateCode,
-  onAddCategory, onRenameCategory, onDeleteCategory}){
+  onAddCategory, onRenameCategory, onDeleteCategory, onUpdateCategoryColor}){
   const [nName,setNName] = useState(""); const [nCat,setNCat] = useState(categories[0]?.id || "");
   const [nMode,setNMode] = useState("weight"); const [nUnit,setNUnit] = useState("กก.");
   const [nPriceRegular,setNPriceRegular] = useState(""); const [nPriceCasual,setNPriceCasual] = useState("");
@@ -2356,10 +2377,14 @@ function InventoryPage({catalog, categories, onUpdatePrice, onToggleQuick, onAdd
         <div className="panel-title"><Icon name="package" size={13}/>หมวดหมู่สินค้า</div>
         <div className="data-table-wrap">
           <table className="data-table">
-            <thead><tr><th>ชื่อหมวดหมู่</th><th>จำนวนสินค้า</th><th></th></tr></thead>
+            <thead><tr><th>สี</th><th>ชื่อหมวดหมู่</th><th>จำนวนสินค้า</th><th></th></tr></thead>
             <tbody>
               {categories.map(c=>(
                 <tr key={c.id}>
+                  <td>
+                    <input type="color" className="cat-color-input" title="เปลี่ยนสีหมวดหมู่"
+                      value={c.color||"#BD5B2C"} onChange={e=>onUpdateCategoryColor(c.id, e.target.value)}/>
+                  </td>
                   <td style={{maxWidth:280}}>
                     <input className="inline-input" value={c.label} onChange={e=>onRenameCategory(c.id, e.target.value)}/>
                   </td>
@@ -2389,7 +2414,7 @@ function InventoryPage({catalog, categories, onUpdatePrice, onToggleQuick, onAdd
           if(items.length===0) return null;
           return (
             <div key={cat.id}>
-              <div className="settings-cat-title">{cat.label}</div>
+              <div className="settings-cat-title"><span className="cat-dot" style={{background:cat.color||"var(--accent)"}}/>{cat.label}</div>
               {items.map(item=>(
                 <div key={item.id} className="settings-row settings-row-code">
                   <input className="inline-input tabular" value={item.code||""} onChange={e=>onUpdateCode(item.id, e.target.value)} placeholder="-"/>
@@ -2748,6 +2773,7 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
 
 /* ============================= MEMBERS PAGE ============================= */
 function MembersPage({customers, bills, categories, onAddCustomer, onUpdateCustomer, onDeleteCustomer, onReprint, onEditBill}){
+  const catColorMap = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c.color||"var(--accent)"])), [categories]);
   const [search,setSearch] = useState("");
   const [selectedId,setSelectedId] = useState(null);
   const [modalMode,setModalMode] = useState(null); // null | "new" | <customer object> (แก้ไข)
@@ -2901,7 +2927,9 @@ function MembersPage({customers, bills, categories, onAddCustomer, onUpdateCusto
                   <div className="panel-title"><Icon name="layers" size={13}/>สรุปตามหมวดหมู่สินค้า</div>
                   {categoryBreakdown.map(row=>(
                     <div key={row.category} className="cat-breakdown-row">
-                      <span>{catLabelMap[row.category] || "อื่นๆ"}</span>
+                      <span style={{display:"flex",alignItems:"center",gap:6}}>
+                        <span className="cat-dot" style={{background:catColorMap[row.category]}}/>{catLabelMap[row.category] || "อื่นๆ"}
+                      </span>
                       <span className="tabular">{row.weight>0 ? `${kg(row.weight)} กก. · ` : ""}{money(row.amount)} ฿</span>
                     </div>
                   ))}
