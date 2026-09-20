@@ -810,22 +810,32 @@ function createWindow() {
  * ด้วย npm start) ถ้ามีอัปเดตจะดาวน์โหลดเงียบๆ อยู่เบื้องหลัง แล้วแจ้งเตือนในโปรแกรมให้กดรีสตาร์ท
  * เพื่อติดตั้งได้ทันที — ถ้าไม่กด โปรแกรมจะติดตั้งให้อัตโนมัติตอนปิดโปรแกรมครั้งถัดไปอยู่ดี
  */
+function autoUpdaterCheck() {
+  return autoUpdater.checkForUpdates().catch((e) => console.error("checkForUpdates failed:", e));
+}
+
 function setupAutoUpdater() {
   if (!app.isPackaged) return;
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
 
-  autoUpdater.on("update-downloaded", (info) => {
-    if (mainWindow) mainWindow.webContents.send("update:downloaded", { version: info.version });
-  });
+  const notify = (type, extra) => {
+    if (mainWindow) mainWindow.webContents.send("update:status", { type, ...(extra || {}) });
+  };
+
+  autoUpdater.on("checking-for-update", () => notify("checking"));
+  autoUpdater.on("update-available", (info) => notify("available", { version: info.version }));
+  autoUpdater.on("update-not-available", () => notify("not-available"));
+  autoUpdater.on("update-downloaded", (info) => notify("downloaded", { version: info.version }));
   autoUpdater.on("error", (err) => {
-    console.error("Auto-update error:", err && (err.stack || err.message) ? (err.stack || err.message) : err);
+    const message = err && (err.stack || err.message) ? (err.stack || err.message) : String(err);
+    console.error("Auto-update error:", message);
+    notify("error", { message: (err && err.message) || String(err) });
   });
 
-  const check = () => autoUpdater.checkForUpdates().catch((e) => console.error("checkForUpdates failed:", e));
-  setTimeout(check, 5000);
-  setInterval(check, 4 * 60 * 60 * 1000); // เช็คซ้ำทุก 4 ชั่วโมง เผื่อเปิดโปรแกรมค้างไว้นาน
+  setTimeout(autoUpdaterCheck, 5000);
+  setInterval(autoUpdaterCheck, 4 * 60 * 60 * 1000); // เช็คซ้ำทุก 4 ชั่วโมง เผื่อเปิดโปรแกรมค้างไว้นาน
 }
 
 ipcMain.handle("app:installUpdate", () => {
@@ -833,6 +843,12 @@ ipcMain.handle("app:installUpdate", () => {
   return true;
 });
 ipcMain.handle("app:version", () => app.getVersion());
+// ปุ่ม "เช็คอัปเดตตอนนี้" ในหน้าตั้งค่า — เรียกเช็คทันทีแทนที่จะรอรอบอัตโนมัติ (ทุก 4 ชม.)
+ipcMain.handle("app:checkForUpdates", () => {
+  if (!app.isPackaged) return { ok: false, reason: "not-packaged" };
+  autoUpdaterCheck();
+  return { ok: true };
+});
 
 app.whenReady().then(() => {
   seedDefaultsIfMissing();

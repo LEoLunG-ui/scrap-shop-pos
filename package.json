@@ -37,7 +37,7 @@
       "provider": "github",
       "owner": "LEoLunG-ui",
       "repo": "scrap-shop-pos",
-      "draft": false
+      "releaseType": "release"
     },
     "win": {
       "target": [

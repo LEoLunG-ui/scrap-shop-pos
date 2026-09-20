@@ -841,16 +841,29 @@ function App(){
   const [lanInfo,setLanInfo] = useState(null);
   const [showConnect,setShowConnect] = useState(false);
   const [updateInfo,setUpdateInfo] = useState(null);
+  const [updateCheckStatus,setUpdateCheckStatus] = useState(null); // สถานะชั่วคราว ใช้โชว์ตอนกด "เช็คอัปเดตตอนนี้" ในหน้าตั้งค่า
   const wsRef = useRef(null);
 
   const {toasts, push} = useToasts();
 
   // อัปเดตอัตโนมัติ: ตัวโปรแกรมหลัก (main.js) เช็ค/ดาวน์โหลดอัปเดตจาก GitHub Releases เบื้องหลัง
-  // ให้เอง — ฝั่งนี้แค่รอรับแจ้งเตือนตอนดาวน์โหลดเสร็จ แล้วแสดงแถบให้กดรีสตาร์ทเพื่อติดตั้ง
+  // ให้เอง — ฝั่งนี้รอรับสถานะทุกขั้นตอน (กำลังเช็ค/พบอัปเดต/ไม่มีอัปเดต/ดาวน์โหลดเสร็จ/error)
+  // แล้วอัปเดตแถบแจ้งเตือนถาวร (ตอนดาวน์โหลดเสร็จ) กับสถานะชั่วคราวของปุ่มเช็คอัปเดตในหน้าตั้งค่า
   useEffect(()=>{
-    if(!hasDesktop || !window.scrapAPI.onUpdateDownloaded) return;
-    return window.scrapAPI.onUpdateDownloaded((info)=>setUpdateInfo(info));
+    if(!hasDesktop || !window.scrapAPI.onUpdateStatus) return;
+    return window.scrapAPI.onUpdateStatus((status)=>{
+      setUpdateCheckStatus(status);
+      if(status.type==="downloaded") setUpdateInfo({version:status.version});
+    });
   },[]);
+
+  function checkForUpdatesNow(){
+    if(!hasDesktop || !window.scrapAPI.checkForUpdates) return;
+    setUpdateCheckStatus({type:"checking"});
+    window.scrapAPI.checkForUpdates().then(res=>{
+      if(!res || !res.ok) setUpdateCheckStatus({type:"not-packaged"});
+    });
+  }
 
   useEffect(()=>{
     persistData({ customers, catalog, categories, bills, extraIncome, employees, advances, settings, draft:{customerId:selectedCustomerId, items:billItems, walkInNickname, walkInLicensePlate}, heldBills });
@@ -1530,7 +1543,8 @@ function App(){
       {page==="settings" && (
         <div className="page-body">
           <SettingsPage settings={settings} onUpdateSettings={updateSettings} dataDir={dataDir}
-            theme={theme} setTheme={setTheme} uiScale={uiScale} setUiScale={setUiScale}/>
+            theme={theme} setTheme={setTheme} uiScale={uiScale} setUiScale={setUiScale}
+            updateCheckStatus={updateCheckStatus} onCheckForUpdates={checkForUpdatesNow}/>
         </div>
       )}
 
@@ -3308,16 +3322,33 @@ function PayrollPage({employees, advances, extraIncome, bills, onAddEmployee, on
 /* ============================= SETTINGS PAGE ============================= */
 const UI_SCALE_MIN = 0.8, UI_SCALE_MAX = 1.5, UI_SCALE_STEP = 0.1;
 
-function SettingsPage({settings, onUpdateSettings, dataDir, theme, setTheme, uiScale, setUiScale}){
+function SettingsPage({settings, onUpdateSettings, dataDir, theme, setTheme, uiScale, setUiScale, updateCheckStatus, onCheckForUpdates}){
   const [storeName,setStoreName] = useState(settings.storeName);
   const [saved,setSaved] = useState(false);
+  const [appVer,setAppVer] = useState("");
   useEffect(()=>{ setStoreName(settings.storeName); },[settings.storeName]);
+  useEffect(()=>{
+    if(hasDesktop && window.scrapAPI.appVersion) window.scrapAPI.appVersion().then(setAppVer).catch(()=>{});
+  },[]);
 
   function saveStoreName(){
     onUpdateSettings({storeName: storeName.trim() || DEFAULT_SETTINGS.storeName});
     setSaved(true);
     setTimeout(()=>setSaved(false), 1800);
   }
+
+  const updateStatusText = (() => {
+    if(!updateCheckStatus) return null;
+    switch(updateCheckStatus.type){
+      case "not-packaged": return "เช็คอัปเดตได้เฉพาะเวอร์ชันที่ติดตั้งจริงเท่านั้น (ไม่ใช่ตอนรันแบบพัฒนา)";
+      case "checking": return "กำลังตรวจสอบอัปเดต...";
+      case "available": return `พบอัปเดตใหม่เวอร์ชัน ${updateCheckStatus.version} — กำลังดาวน์โหลดเบื้องหลัง...`;
+      case "not-available": return "ใช้เวอร์ชันล่าสุดอยู่แล้ว";
+      case "downloaded": return `ดาวน์โหลดเวอร์ชัน ${updateCheckStatus.version} เสร็จแล้ว — ดูแถบด้านล่างเพื่อรีสตาร์ทติดตั้ง`;
+      case "error": return `เช็คอัปเดตไม่สำเร็จ: ${updateCheckStatus.message||""}`;
+      default: return null;
+    }
+  })();
 
   return (
     <>
@@ -3368,6 +3399,22 @@ function SettingsPage({settings, onUpdateSettings, dataDir, theme, setTheme, uiS
           </div>
         </div>
       </div>
+
+      {hasDesktop && (
+        <div className="panel">
+          <div className="panel-title"><Icon name="refresh" size={13}/>อัปเดตโปรแกรม</div>
+          <div style={{fontSize:13.5,color:"var(--ink-muted)"}}>
+            เวอร์ชันปัจจุบัน: <span className="tabular" style={{color:"var(--ink)",fontWeight:700}}>{appVer||"..."}</span>
+            {" "}— โปรแกรมเช็คอัปเดตให้อัตโนมัติอยู่แล้วตอนเปิดเครื่อง (และทุก 4 ชม.) กดปุ่มนี้เพื่อเช็คทันทีได้
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{marginTop:8,alignSelf:"flex-start"}} onClick={onCheckForUpdates}>
+            <Icon name="refresh" size={15}/>เช็คอัปเดตตอนนี้
+          </button>
+          {updateStatusText && (
+            <div className="idcard-status muted" style={{marginTop:8}}>{updateStatusText}</div>
+          )}
+        </div>
+      )}
 
       {hasDesktop && (
         <div className="panel">

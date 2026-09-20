@@ -6,9 +6,13 @@ card-reader/obj/
 card-reader/publish/
 .claude/
 
-# ไฟล์ token/secret ที่อาจแปะเก็บไว้ในโฟลเดอร์นี้ระหว่างทำงาน — ห้ามหลุดขึ้น git เด็ดขาด
+# ไฟล์ token/secret/รหัสผ่านที่อาจแปะเก็บไว้ในโฟลเดอร์นี้ระหว่างทำงาน — ห้ามหลุดขึ้น git เด็ดขาด
 scrap-shop-pos.txt
+รหัส.txt
+*รหัส*.txt
 *.token
 *token*.txt
+*password*.txt
+*secret*.txt
 .env
 .env.*

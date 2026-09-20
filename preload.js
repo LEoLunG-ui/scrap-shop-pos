@@ -22,9 +22,10 @@ contextBridge.exposeInMainWorld("scrapAPI", {
   },
   appVersion: () => ipcRenderer.invoke("app:version"),
   installUpdate: () => ipcRenderer.invoke("app:installUpdate"),
-  onUpdateDownloaded: (callback) => {
-    const handler = (_e, info) => callback(info);
-    ipcRenderer.on("update:downloaded", handler);
-    return () => ipcRenderer.removeListener("update:downloaded", handler);
+  checkForUpdates: () => ipcRenderer.invoke("app:checkForUpdates"),
+  onUpdateStatus: (callback) => {
+    const handler = (_e, status) => callback(status);
+    ipcRenderer.on("update:status", handler);
+    return () => ipcRenderer.removeListener("update:status", handler);
   },
 });
