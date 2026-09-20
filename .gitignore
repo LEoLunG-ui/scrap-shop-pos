@@ -5,3 +5,10 @@ card-reader/bin/
 card-reader/obj/
 card-reader/publish/
 .claude/
+
+# ไฟล์ token/secret ที่อาจแปะเก็บไว้ในโฟลเดอร์นี้ระหว่างทำงาน — ห้ามหลุดขึ้น git เด็ดขาด
+scrap-shop-pos.txt
+*.token
+*token*.txt
+.env
+.env.*

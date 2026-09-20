@@ -878,7 +878,7 @@ ipcMain.handle("print:receipt", (_e, mmWidth) => {
     {
       silent: false,
       printBackground: true,
-      copies: 2,
+      copies: 1,
       collate: true,
       margins: { marginType: "none" },
       pageSize: { width: widthMicrons, height: 297000 }, // ความกว้างตามจุดที่พิมพ์ (จบการขาย/ประวัติ อาจตั้งค่าไม่เท่ากัน), สูง 297mm ไว้รองรับบิลยาว
