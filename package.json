@@ -1,0 +1,77 @@
+{
+  "name": "scrap-shop-pos",
+  "version": "1.0.0",
+  "description": "ระบบรับซื้อของเก่า - โปรแกรม POS สำหรับร้านรับซื้อของเก่า",
+  "main": "main.js",
+  "author": "ระบบ POS ค้าของเก่า by.leolung",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron .",
+    "dist": "electron-builder --win nsis portable",
+    "release": "electron-builder --win nsis portable --publish always"
+  },
+  "devDependencies": {
+    "electron": "^33.0.0",
+    "electron-builder": "^25.1.8"
+  },
+  "build": {
+    "appId": "com.scrapshop.pos",
+    "productName": "ระบบ POS ค้าของเก่า by.leolung",
+    "asar": true,
+    "files": [
+      "main.js",
+      "preload.js",
+      "renderer/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "card-reader-bin",
+        "to": "card-reader-bin"
+      }
+    ],
+    "directories": {
+      "output": "dist"
+    },
+    "publish": {
+      "provider": "github",
+      "owner": "LEoLunG-ui",
+      "repo": "scrap-shop-pos"
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "ระบบ POS ค้าของเก่า by.leolung"
+    }
+  },
+  "allowScripts": {
+    "electron@33.4.11": true
+  },
+  "dependencies": {
+    "electron-updater": "^6.8.9",
+    "exceljs": "^4.4.0",
+    "express": "^5.2.1",
+    "google-auth-library": "^11.0.2",
+    "googleapis": "^178.0.0",
+    "open": "^8.4.2",
+    "ws": "^8.21.3"
+  }
+}

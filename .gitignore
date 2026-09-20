@@ -1,0 +1,7 @@
+node_modules/
+dist/
+*.rar
+card-reader/bin/
+card-reader/obj/
+card-reader/publish/
+.claude/

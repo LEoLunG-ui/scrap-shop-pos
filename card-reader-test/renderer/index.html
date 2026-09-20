@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ทดสอบเครื่องอ่านบัตร</title>
+<style>
+  :root{
+    --bg:#141714; --bg-2:#191d19; --surface:#1e231e; --surface-2:#242a24;
+    --border:#31382f; --ink:#eef2ea; --ink-muted:#9aa89a; --ink-faint:#6c7a6a;
+    --accent:#e08a3c; --money:#7fd97f; --danger:#e0603c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI','Tahoma',sans-serif; font-size:14px; padding:20px;
+  }
+  .header h1{font-size:19px; margin:0 0 4px;}
+  .header p{margin:0 0 16px; color:var(--ink-muted); font-size:12.5px; line-height:1.5;}
+  .status{
+    display:flex; align-items:center; gap:8px; padding:10px 14px; border-radius:8px;
+    background:var(--surface-2); border:1px solid var(--border); font-size:13px; margin-bottom:14px;
+  }
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--ink-faint); flex:0 0 auto;}
+  .dot.live{background:var(--money); box-shadow:0 0 0 3px rgba(127,217,127,0.2);}
+  .dot.bad{background:var(--danger); box-shadow:0 0 0 3px rgba(224,96,60,0.2);}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:18px; display:flex; gap:16px; margin-bottom:14px;
+  }
+  .card.empty{align-items:center; justify-content:center; min-height:140px; color:var(--ink-faint); text-align:center; flex-direction:column; gap:8px;}
+  .photo{width:100px; height:128px; object-fit:cover; border-radius:8px; border:1px solid var(--border); flex:0 0 auto; background:var(--surface-2);}
+  .fields{flex:1; min-width:0;}
+  .name-th{font-size:17px; font-weight:700;}
+  .name-en{font-size:12px; color:var(--ink-muted); margin-top:2px;}
+  .cid{font-size:14px; font-weight:700; color:var(--accent); margin-top:6px;}
+  .row{display:flex; gap:6px; margin-top:6px; font-size:12px; flex-wrap:wrap;}
+  .row .label{color:var(--ink-faint);}
+  .log-title{font-size:12px; color:var(--ink-muted); margin-bottom:6px; display:flex; justify-content:space-between; align-items:center;}
+  .log-title button{
+    background:var(--surface-2); color:var(--ink-muted); border:1px solid var(--border); border-radius:5px;
+    padding:3px 9px; font-size:11px; cursor:pointer;
+  }
+  .log{
+    background:#0d0f0d; border:1px solid var(--border); border-radius:8px; padding:10px 12px;
+    font-family:'Consolas','Courier New',monospace; font-size:10.5px; color:#8fd98f;
+    height:340px; overflow-y:auto; white-space:pre-wrap; word-break:break-all;
+  }
+  .log .err{color:var(--danger);}
+  .log .line{border-bottom:1px solid #1c231c; padding:3px 0;}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>ทดสอบเครื่องอ่านบัตรประชาชน</h1>
+    <p>เครื่องมือแยกต่างหาก ไม่เชื่อมกับระบบ POS — ใช้ทดสอบว่าเครื่องอ่าน/พอร์ต USB/บัตร อ่านผ่านได้จริงหรือไม่<br>
+    ⚠️ ห้ามเปิดพร้อมกับโปรแกรม POS หลัก หรือระบบอ่านบัตรแยก จะแย่งกันคุยกับเครื่องอ่านจนอ่านไม่ออก</p>
+  </div>
+
+  <div class="status" id="status">
+    <span class="dot" id="dot"></span>
+    <span id="statusText">กำลังเริ่มโปรแกรมอ่านบัตร...</span>
+  </div>
+
+  <div id="cardArea">
+    <div class="card empty">
+      <div style="font-size:28px;">🪪</div>
+      <div>ยังไม่มีข้อมูลบัตร — เสียบบัตรที่เครื่องอ่านได้เลย</div>
+    </div>
+  </div>
+
+  <div class="log-title">
+    <span>บันทึกดิบ (raw log) — ดูตอนแก้ปัญหา</span>
+    <button onclick="document.getElementById('log').innerHTML=''">ล้างบันทึก</button>
+  </div>
+  <div class="log" id="log"></div>
+
+<script>
+function setStatus(ok, text){
+  document.getElementById('dot').className = 'dot ' + (ok===null? '' : (ok?'live':'bad'));
+  document.getElementById('statusText').textContent = text;
+}
+
+function appendLog(text, isErr){
+  const log = document.getElementById('log');
+  const div = document.createElement('div');
+  div.className = 'line' + (isErr ? ' err' : '');
+  const ts = new Date().toLocaleTimeString('th-TH', {hour12:false});
+  div.textContent = `[${ts}] ${text}`;
+  log.appendChild(div);
+  log.scrollTop = log.scrollHeight;
+}
+
+function renderCard(c){
+  const area = document.getElementById('cardArea');
+  const photo = c.photoBase64Jpeg ? `data:image/jpeg;base64,${c.photoBase64Jpeg}` : null;
+  area.innerHTML = `
+    <div class="card">
+      ${photo ? `<img class="photo" src="${photo}">` : `<div class="photo"></div>`}
+      <div class="fields">
+        <div class="name-th">${c.thaiName||'-'}</div>
+        <div class="name-en">${c.englishName||''}</div>
+        <div class="cid">${c.cid}</div>
+        <div class="row"><span class="label">วันเกิด:</span><span>${c.birthDateIso||'-'}</span></div>
+        <div class="row"><span class="label">เพศ:</span><span>${c.gender||'-'}</span></div>
+        <div class="row"><span class="label">ที่อยู่:</span><span>${c.address||'-'}</span></div>
+        <div class="row"><span class="label">วันออกบัตร:</span><span>${c.issueDateIso||'-'}</span></div>
+        <div class="row"><span class="label">วันหมดอายุ:</span><span>${c.expireDateIso||'-'}</span></div>
+      </div>
+    </div>
+  `;
+}
+
+window.testApp.onEvent((msg)=>{
+  appendLog('event: ' + JSON.stringify(msg).slice(0, 300));
+  if(msg.type==='starting'){
+    setStatus(null, 'กำลังเชื่อมต่อเครื่องอ่านบัตร...');
+  } else if(msg.type==='no_reader'){
+    setStatus(false, 'ไม่พบเครื่องอ่านบัตร — ตรวจสอบว่าเสียบสาย USB แล้ว');
+  } else if(msg.type==='card_data'){
+    setStatus(true, '✓ อ่านบัตรสำเร็จ!');
+    renderCard(msg.data);
+  } else if(msg.type==='card_removed'){
+    setStatus(true, 'เชื่อมต่อเครื่องอ่านแล้ว — รอสแกนบัตร');
+  } else if(msg.type==='read_error'){
+    setStatus(false, 'อ่านบัตรไม่สำเร็จ: ' + (msg.message||'การสื่อสารกับบัตรขาดหาย'));
+  } else if(msg.type==='fatal_error'){
+    setStatus(false, 'เชื่อมต่อเครื่องอ่านไม่สำเร็จ: ' + (msg.message||''));
+  }
+});
+
+window.testApp.onLog((msg)=>{
+  appendLog(msg.text, msg.level==='error');
+});
+</script>
+</body>
+</html>

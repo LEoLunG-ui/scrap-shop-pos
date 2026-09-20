@@ -1,0 +1,15 @@
+{
+  "name": "card-reader-app",
+  "version": "1.0.0",
+  "description": "ระบบอ่านบัตรประชาชนแยกต่างหาก - เชื่อมข้อมูลเข้าระบบ POS ร้านรับซื้อของเก่า",
+  "main": "main.js",
+  "author": "ระบบ POS ค้าของเก่า by.leolung",
+  "license": "UNLICENSED",
+  "private": true,
+  "scripts": {
+    "start": "electron ."
+  },
+  "devDependencies": {
+    "electron": "^33.0.0"
+  }
+}

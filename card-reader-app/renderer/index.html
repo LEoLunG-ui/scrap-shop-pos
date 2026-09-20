@@ -1,0 +1,254 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<title>ระบบอ่านบัตรประชาชน</title>
+<style>
+  :root{
+    --bg:#141714; --bg-2:#191d19; --surface:#1e231e; --surface-2:#242a24;
+    --border:#31382f; --ink:#eef2ea; --ink-muted:#9aa89a; --ink-faint:#6c7a6a;
+    --accent:#e08a3c; --accent-soft:#3a2c1c; --money:#7fd97f; --danger:#e0603c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0; background:var(--bg); color:var(--ink);
+    font-family:'Segoe UI','Tahoma',sans-serif; font-size:14px; padding:20px;
+  }
+  .header{margin-bottom:14px;}
+  .header h1{font-size:19px; margin:0 0 4px;}
+  .header p{margin:0; color:var(--ink-muted); font-size:12.5px; line-height:1.5;}
+  .statusbar{display:flex; flex-direction:column; gap:6px; margin-bottom:16px;}
+  .status{
+    display:flex; align-items:center; gap:8px; padding:9px 14px; border-radius:8px;
+    background:var(--surface-2); border:1px solid var(--border); font-size:12.5px;
+  }
+  .dot{width:9px; height:9px; border-radius:50%; background:var(--ink-faint); flex:0 0 auto;}
+  .dot.live{background:var(--money); box-shadow:0 0 0 3px rgba(127,217,127,0.2);}
+  .dot.bad{background:var(--danger); box-shadow:0 0 0 3px rgba(224,96,60,0.2);}
+  .card{
+    background:var(--surface); border:1px solid var(--border); border-radius:12px;
+    padding:18px; display:flex; gap:16px;
+  }
+  .card.empty{align-items:center; justify-content:center; min-height:200px; color:var(--ink-faint); text-align:center; flex-direction:column; gap:8px;}
+  .photo{
+    width:110px; height:140px; object-fit:cover; border-radius:8px; border:1px solid var(--border);
+    flex:0 0 auto; background:var(--surface-2);
+  }
+  .fields{flex:1; min-width:0;}
+  .name-th{font-size:18px; font-weight:700;}
+  .name-en{font-size:12.5px; color:var(--ink-muted); margin-top:2px;}
+  .cid{font-size:15px; font-weight:700; color:var(--accent); margin-top:8px; letter-spacing:0.5px;}
+  .row{display:flex; gap:6px; margin-top:8px; font-size:12.5px; flex-wrap:wrap;}
+  .row .label{color:var(--ink-faint); flex:0 0 auto;}
+  .row .value{color:var(--ink);}
+  .badge{display:inline-block; padding:3px 9px; border-radius:99px; font-size:11.5px; font-weight:600; margin-top:10px;}
+  .badge.found{background:rgba(127,217,127,0.15); color:var(--money);}
+  .badge.new{background:var(--accent-soft); color:var(--accent);}
+  .field{margin-top:14px;}
+  .field label{display:block; font-size:12px; color:var(--ink-muted); margin-bottom:5px;}
+  .field input{
+    width:100%; background:var(--bg-2); border:1px solid var(--border); border-radius:7px;
+    padding:9px 11px; color:var(--ink); font-size:14px; font-family:inherit;
+  }
+  .actions{display:flex; gap:8px; margin-top:16px;}
+  button{
+    background:var(--surface-2); color:var(--ink); border:1px solid var(--border); border-radius:7px;
+    padding:9px 14px; font-size:13px; cursor:pointer; font-family:inherit;
+  }
+  button:hover{border-color:var(--accent);}
+  button:disabled{opacity:0.5; cursor:not-allowed;}
+  button.primary{background:var(--accent); color:#1a1206; border-color:var(--accent); font-weight:600;}
+  .toast{
+    position:fixed; bottom:20px; left:50%; transform:translateX(-50%);
+    background:var(--surface-2); border:1px solid var(--accent); color:var(--ink);
+    padding:9px 16px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .2s;
+    pointer-events:none;
+  }
+  .toast.show{opacity:1;}
+</style>
+</head>
+<body>
+  <div class="header">
+    <h1>ระบบอ่านบัตรประชาชน</h1>
+    <p>อ่านบัตรโดยตรงผ่านเครื่องอ่าน แล้วเชื่อมข้อมูลเข้าระบบ POS ร้านรับซื้อของเก่าได้ทันที</p>
+  </div>
+
+  <div class="statusbar">
+    <div class="status" id="readerStatus">
+      <span class="dot" id="readerDot"></span>
+      <span id="readerText">รอเชื่อมต่อกับโปรแกรม POS หลัก...</span>
+    </div>
+    <div class="status" id="posStatus">
+      <span class="dot" id="posDot"></span>
+      <span id="posText">กำลังเชื่อมต่อระบบ POS...</span>
+    </div>
+  </div>
+
+  <div id="cardArea">
+    <div class="card empty">
+      <div style="font-size:32px;">🪪</div>
+      <div>ยังไม่มีข้อมูลบัตร — เสียบบัตรที่เครื่องอ่านได้เลย</div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast"></div>
+
+<script>
+let customers = [];
+let ws = null;
+let currentCard = null;
+let matchedCustomer = null;
+
+// ---------- เชื่อมต่อระบบ POS หลักผ่าน WebSocket (พอร์ตเดียวกับที่มือถือ/แท็บเล็ตเชื่อม) ----------
+function connectPos(){
+  try{
+    ws = new WebSocket('ws://localhost:4173/ws');
+  }catch(e){
+    setPosStatus(false, 'เชื่อมต่อระบบ POS ไม่สำเร็จ');
+    setTimeout(connectPos, 3000);
+    return;
+  }
+  ws.onopen = () => setPosStatus(true, 'เชื่อมต่อระบบ POS แล้ว');
+  ws.onclose = () => { setPosStatus(false, 'ขาดการเชื่อมต่อระบบ POS — กำลังลองใหม่...'); setTimeout(connectPos, 3000); };
+  ws.onerror = () => {};
+  ws.onmessage = (ev) => {
+    try{
+      const msg = JSON.parse(ev.data);
+      if(Array.isArray(msg.customers)) customers = msg.customers;
+      if(msg.type==='cardEvent') handleCardReaderMsg(msg.event);
+      if(currentCard) matchCustomer();
+    }catch(e){}
+  };
+}
+function setPosStatus(ok, text){
+  document.getElementById('posDot').className = 'dot ' + (ok?'live':'bad');
+  document.getElementById('posText').textContent = text;
+}
+function wsSend(obj){
+  if(ws && ws.readyState===1){ ws.send(JSON.stringify(obj)); return true; }
+  return false;
+}
+
+// ---------- รับข้อมูลจากเครื่องอ่านบัตร (ผ่านโปรแกรม POS หลัก ไม่ได้เปิดเครื่องอ่านเอง) ----------
+// เพราะถ้าโปรแกรมนี้เปิดเครื่องอ่านบัตรของตัวเองพร้อมกับโปรแกรม POS หลัก จะแย่งกันคุยกับ
+// เครื่องอ่านจนอ่านบัตรไม่ออกเลยทั้งคู่ (เจอปัญหานี้มาแล้วจริง) — ให้โปรแกรม POS หลักเป็น
+// ตัวเดียวที่คุยกับเครื่องอ่าน แล้วส่งต่อผลลัพธ์มาทาง WebSocket แทน
+function handleCardReaderMsg(msg){
+  const dot = document.getElementById('readerDot');
+  const text = document.getElementById('readerText');
+  if(msg.type==='no_reader'){
+    dot.className = 'dot bad';
+    text.textContent = 'ไม่พบเครื่องอ่านบัตรที่โปรแกรม POS หลัก — ตรวจสอบว่าเสียบสาย USB แล้ว';
+  } else if(msg.type==='card_data'){
+    dot.className = 'dot live';
+    text.textContent = 'อ่านบัตรสำเร็จ';
+    currentCard = msg.data;
+    matchCustomer();
+  } else if(msg.type==='card_removed'){
+    dot.className = 'dot live';
+    text.textContent = 'พร้อมอ่านบัตร — รอสแกนบัตรใหม่';
+  } else if(msg.type==='read_error'){
+    dot.className = 'dot bad';
+    text.textContent = 'อ่านบัตรไม่สำเร็จ (การสื่อสารกับบัตรขาดหาย) — ลองถอดแล้วเสียบบัตรใหม่';
+  } else if(msg.type==='fatal_error'){
+    dot.className = 'dot bad';
+    text.textContent = 'เครื่องอ่านบัตรที่โปรแกรม POS หลักเชื่อมต่อไม่สำเร็จ: ' + (msg.message||'');
+  }
+}
+
+function matchCustomer(){
+  if(!currentCard) return;
+  matchedCustomer = customers.find(c => c.idCard === currentCard.cid) || null;
+  if(matchedCustomer && currentCard.photoBase64Jpeg){
+    const newPhoto = `data:image/jpeg;base64,${currentCard.photoBase64Jpeg}`;
+    if(newPhoto !== matchedCustomer.photo){
+      const updated = {...matchedCustomer, photo:newPhoto, idVerified:true};
+      wsSend({type:'addCustomer', customer:updated});
+      customers = customers.map(c => c.id===updated.id ? updated : c);
+      matchedCustomer = updated;
+    }
+  }
+  render();
+}
+
+function render(){
+  const area = document.getElementById('cardArea');
+  const c = currentCard;
+  const photo = c.photoBase64Jpeg ? `data:image/jpeg;base64,${c.photoBase64Jpeg}` : (matchedCustomer && matchedCustomer.photo) || null;
+
+  if(matchedCustomer){
+    area.innerHTML = `
+      <div class="card">
+        ${photo ? `<img class="photo" src="${photo}">` : `<div class="photo"></div>`}
+        <div class="fields">
+          <div class="name-th">${matchedCustomer.name}</div>
+          <div class="cid">${c.cid}</div>
+          <div class="row"><span class="label">เบอร์โทร:</span><span class="value">${matchedCustomer.phone||'-'}</span></div>
+          <span class="badge found">✓ พบในระบบ POS แล้ว — เป็นสมาชิกเดิม</span>
+        </div>
+      </div>
+    `;
+    return;
+  }
+
+  area.innerHTML = `
+    <div class="card">
+      ${photo ? `<img class="photo" src="${photo}">` : `<div class="photo"></div>`}
+      <div class="fields">
+        <div class="name-th">${c.thaiName||'-'}</div>
+        <div class="name-en">${c.englishName||''}</div>
+        <div class="cid">${c.cid}</div>
+        <div class="row"><span class="label">วันเกิด:</span><span class="value">${c.birthDateIso||'-'}</span></div>
+        <div class="row"><span class="label">เพศ:</span><span class="value">${c.gender||'-'}</span></div>
+        <div class="row"><span class="label">ที่อยู่:</span><span class="value">${c.address||'-'}</span></div>
+        <div class="row"><span class="label">วันออกบัตร:</span><span class="value">${c.issueDateIso||'-'}</span></div>
+        <div class="row"><span class="label">วันหมดอายุ:</span><span class="value">${c.expireDateIso||'-'}</span></div>
+        <span class="badge new">ยังไม่เคยเป็นสมาชิก — เพิ่มใหม่ได้เลย</span>
+        <div class="field">
+          <label>เบอร์โทรศัพท์ (จำเป็น)</label>
+          <input type="text" id="phoneInput" placeholder="08x-xxx-xxxx">
+        </div>
+        <div class="actions">
+          <button class="primary" id="saveBtn" onclick="saveNewCustomer()">💾 เพิ่มเป็นสมาชิกในระบบ POS</button>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function saveNewCustomer(){
+  const phoneInput = document.getElementById('phoneInput');
+  const phone = phoneInput.value.trim();
+  if(phone.length < 6){ phoneInput.style.borderColor = 'var(--danger)'; return; }
+  const customer = {
+    id: crypto.randomUUID(),
+    name: currentCard.thaiName || '',
+    phone,
+    type: 'retail',
+    idCard: currentCard.cid,
+    idVerified: true,
+    photo: currentCard.photoBase64Jpeg ? `data:image/jpeg;base64,${currentCard.photoBase64Jpeg}` : '',
+    createdAt: new Date().toISOString(),
+  };
+  const sent = wsSend({type:'addCustomer', customer});
+  if(sent){
+    customers = [customer, ...customers];
+    matchedCustomer = customer;
+    render();
+    showToast(`เพิ่มสมาชิก "${customer.name}" เข้าระบบ POS แล้ว`);
+  } else {
+    showToast('ส่งข้อมูลไม่สำเร็จ — ยังไม่ได้เชื่อมต่อระบบ POS');
+  }
+}
+
+function showToast(text){
+  const t = document.getElementById('toast');
+  t.textContent = text;
+  t.classList.add('show');
+  setTimeout(()=>t.classList.remove('show'), 2200);
+}
+
+connectPos();
+</script>
+</body>
+</html>

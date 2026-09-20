@@ -1,0 +1,3508 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' 'unsafe-eval' data:; connect-src 'self' ws: wss: http: https:;">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ระบบ POS ค้าของเก่า by.leolung</title>
+<link rel="stylesheet" href="./vendor/fonts/fonts.css">
+<script src="./vendor/react.production.min.js"></script>
+<script src="./vendor/react-dom.production.min.js"></script>
+<script src="./vendor/babel.min.js"></script>
+
+<style>
+/* ---------- tokens ---------- */
+:root{
+  --bg:#E2E4DF;
+  --bg-2:#D7DAD3;
+  --surface:#F7F8F5;
+  --surface-2:#FFFFFF;
+  --ink:#14170F;
+  --ink-muted:#454C46;
+  --ink-faint:#656C61;
+  --item-ink:#1B4B78;
+  --border:#C6CBC2;
+  --border-strong:#AFB6AA;
+  --accent:#BD5B2C;
+  --accent-hover:#A34E24;
+  --accent-soft:#F1DDCB;
+  --accent-ink:#FFFFFF;
+  --money:#2F7A4F;
+  --money-soft:#E1EFE4;
+  --brass:#93711F;
+  --brass-soft:#F0E6C8;
+  --danger:#B23A2E;
+  --danger-soft:#F5DEDA;
+  --shadow: 0 1px 2px rgba(20,24,20,.06), 0 4px 14px rgba(20,24,20,.06);
+  --radius: 6px;
+  --font-display: 'Chakra Petch', 'Leelawadee UI', 'Tahoma', sans-serif;
+  --font-body: 'IBM Plex Sans Thai', 'Leelawadee UI', 'Tahoma', sans-serif;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --bg:#141714;
+    --bg-2:#1A1D19;
+    --surface:#1C201C;
+    --surface-2:#232823;
+    --ink:#E8EAE4;
+    --ink-muted:#B7BEB4;
+    --ink-faint:#8C938A;
+    --item-ink:#7CB4EE;
+    --border:#333A33;
+    --border-strong:#454E44;
+    --accent:#E38350;
+    --accent-hover:#EE9767;
+    --accent-soft:#3A2A1E;
+    --accent-ink:#1B140D;
+    --money:#5FBE85;
+    --money-soft:#173321;
+    --brass:#D3B15E;
+    --brass-soft:#332B14;
+    --danger:#E37A6C;
+    --danger-soft:#3B211D;
+    --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+  }
+}
+:root[data-theme="dark"]{
+  --bg:#141714;
+  --bg-2:#1A1D19;
+  --surface:#1C201C;
+  --surface-2:#232823;
+  --ink:#E8EAE4;
+  --ink-muted:#B7BEB4;
+  --ink-faint:#8C938A;
+  --item-ink:#7CB4EE;
+  --border:#333A33;
+  --border-strong:#454E44;
+  --accent:#E38350;
+  --accent-hover:#EE9767;
+  --accent-soft:#3A2A1E;
+  --accent-ink:#1B140D;
+  --money:#5FBE85;
+  --money-soft:#173321;
+  --brass:#D3B15E;
+  --brass-soft:#332B14;
+  --danger:#E37A6C;
+  --danger-soft:#3B211D;
+  --shadow: 0 1px 2px rgba(0,0,0,.3), 0 6px 20px rgba(0,0,0,.35);
+}
+
+*{box-sizing:border-box;}
+html,body{height:100%;}
+body{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:var(--font-body);
+  -webkit-font-smoothing:antialiased;
+  overflow:hidden;
+}
+#root{height:100vh;}
+::selection{background:var(--accent-soft);}
+button{font-family:inherit;}
+input,select{font-family:inherit;}
+::-webkit-scrollbar{width:9px;height:9px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--border-strong);border-radius:99px;}
+
+.tabular{font-variant-numeric:tabular-nums;}
+.font-display{font-family:var(--font-display);}
+
+h1,h2,h3,h4{text-wrap:balance;font-family:var(--font-display);margin:0;}
+
+.app-shell{
+  display:grid;
+  grid-template-rows:auto 1fr;
+  height:100vh;
+  background:
+    radial-gradient(1200px 500px at 100% -10%, var(--bg-2), transparent 60%),
+    var(--bg);
+}
+.app-header{position:sticky;top:0;z-index:30;}
+.topbar{
+  display:flex;align-items:center;gap:10px;flex-wrap:wrap;row-gap:8px;
+  padding:10px 18px;
+  border-bottom:1px solid var(--border);
+  background:var(--surface);
+  -webkit-app-region: drag;
+}
+.topbar button, .topbar input{ -webkit-app-region: no-drag; }
+.sync-badge{display:flex;align-items:center;gap:6px;font-size:11.5px;color:var(--ink-muted);padding:5px 10px;border-radius:99px;background:var(--bg-2);white-space:nowrap;}
+.sync-dot{width:7px;height:7px;border-radius:99px;background:var(--ink-faint);flex:none;}
+.sync-dot.on{background:var(--money);box-shadow:0 0 0 3px var(--money-soft);}
+.sync-dot.off{background:var(--ink-faint);}
+.brand{display:flex;align-items:center;gap:10px;}
+.brand-mark{
+  width:38px;height:38px;border-radius:8px;
+  background:linear-gradient(155deg, var(--accent), var(--accent-hover));
+  display:flex;align-items:center;justify-content:center;color:var(--accent-ink);
+  flex:none;
+}
+.brand-name{font-family:var(--font-display);font-weight:700;font-size:17px;letter-spacing:.2px;line-height:1.1;}
+.brand-sub{font-size:11.5px;color:var(--ink-muted);letter-spacing:.3px;}
+.topbar-spacer{flex:1;}
+.topbar-clock{font-size:13px;color:var(--ink-muted);text-align:right;line-height:1.3;}
+.topbar-clock b{color:var(--ink);font-family:var(--font-display);font-variant-numeric:tabular-nums;}
+
+.frame{
+  display:grid;
+  grid-template-columns:290px 1fr 320px;
+  min-height:0;
+}
+.pane{
+  min-height:0;
+  overflow-y:auto;
+  padding:14px;
+  display:flex;flex-direction:column;gap:12px;
+}
+.pane-left{border-right:1px solid var(--border);}
+.pane-right{border-left:1px solid var(--border);background:var(--surface);}
+
+@media (max-width:1080px){
+  html,body{height:auto;}
+  body{overflow-y:auto;overflow-x:hidden;}
+  #root{height:auto;min-height:100vh;}
+  .app-shell{height:auto;min-height:100vh;}
+  .frame{grid-template-columns:1fr;grid-auto-rows:auto;overflow:visible;}
+  .pane{max-height:none;overflow:visible;}
+  .pane-left{border-right:none;border-bottom:1px solid var(--border);}
+  .pane-right{border-left:none;border-top:1px solid var(--border);}
+  .topbar{padding:10px 14px;}
+  .topbar-clock{text-align:left;}
+}
+
+/* ขยายขนาดตัวอักษร/หน้าจอ (ตั้งค่า → ขนาดตัวอักษร): ที่ขนาดปกติ 100% ทั้งแอปถูกออกแบบให้พอดี
+   กับความสูงจอ (100vh) เป๊ะ โดยแต่ละพาเนล เลื่อนดูของตัวเองแยกกัน — แต่พอซูมทั้งหน้าใหญ่ขึ้น
+   (CSS zoom) เนื้อหาจะใหญ่เกิน 100vh จริง ถ้ายังบังคับ overflow:hidden ไว้จะเลื่อนไปกดเมนูด้านบน
+   ไม่ได้เลย จึงสลับมาให้ทั้งหน้าเลื่อนแบบหน้าเว็บปกติแทน (เหมือน breakpoint จอแคบด้านบน) พร้อมปัก
+   หัวเมนู (app-header) ให้ลอยค้างด้านบนเสมอ กดเมนูได้ตลอดแม้เลื่อนหน้าอยู่ */
+html.ui-scaled,html.ui-scaled body{height:auto;}
+html.ui-scaled body{overflow-y:auto;overflow-x:hidden;}
+html.ui-scaled #root{height:auto;min-height:100vh;}
+html.ui-scaled .app-shell{height:auto;min-height:100vh;}
+html.ui-scaled .frame{grid-auto-rows:auto;overflow:visible;}
+html.ui-scaled .pane{max-height:none;overflow:visible;}
+
+.panel{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:var(--radius);
+  padding:12px;
+}
+.panel-title{
+  font-size:12.5px;font-weight:700;letter-spacing:.6px;text-transform:uppercase;
+  color:var(--ink-muted);margin-bottom:9px;display:flex;align-items:center;gap:6px;
+}
+
+/* buttons */
+.btn{
+  display:inline-flex;align-items:center;justify-content:center;gap:6px;
+  border-radius:5px;border:1px solid var(--border-strong);
+  background:var(--surface-2);color:var(--ink);
+  font-size:15px;font-weight:500;padding:9px 14px;cursor:pointer;
+  transition:background .12s,border-color .12s,transform .05s;
+  line-height:1.2;
+}
+.btn:hover{background:var(--bg-2);}
+.btn:active{transform:translateY(1px);}
+.btn:focus-visible{outline:2px solid var(--accent);outline-offset:1px;}
+.btn:disabled{opacity:.45;cursor:not-allowed;}
+.btn-primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:600;}
+.btn-primary:hover{background:var(--accent-hover);border-color:var(--accent-hover);}
+.btn-money{background:var(--money);border-color:var(--money);color:#fff;font-weight:700;}
+.btn-money:hover{filter:brightness(1.06);}
+.btn-ghost{background:transparent;border-color:transparent;}
+.btn-ghost:hover{background:var(--bg-2);}
+.btn-danger-ghost{background:transparent;border-color:transparent;color:var(--danger);}
+.btn-danger-ghost:hover{background:var(--danger-soft);}
+.btn-block{width:100%;}
+.btn-sm{padding:5px 9px;font-size:12px;}
+.icon-btn{
+  display:inline-flex;align-items:center;justify-content:center;
+  width:30px;height:30px;border-radius:5px;border:1px solid transparent;
+  background:transparent;color:var(--ink-muted);cursor:pointer;
+}
+.icon-btn:hover{background:var(--bg-2);color:var(--ink);}
+
+/* inputs */
+.field{display:flex;flex-direction:column;gap:4px;}
+.field label{font-size:12.5px;color:var(--ink-muted);font-weight:600;}
+.input,.select{
+  border:1px solid var(--border-strong);border-radius:5px;background:var(--surface-2);
+  color:var(--ink);padding:10px 12px;font-size:16px;width:100%;
+}
+.input:focus,.select:focus{outline:2px solid var(--accent);outline-offset:-1px;border-color:var(--accent);}
+.input-search{padding-left:32px;}
+.input-wrap{position:relative;}
+.input-wrap .search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--ink-faint);}
+.input-wrap .search-clear{position:absolute;right:5px;top:50%;transform:translateY(-50%);}
+.input-wrap .input-search{padding-right:30px;}
+
+/* customer */
+.cust-result{
+  display:flex;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 9px;border-radius:5px;cursor:pointer;border:1px solid transparent;
+}
+.cust-result:hover{background:var(--bg-2);border-color:var(--border);}
+.cust-result-name{font-size:13.5px;font-weight:600;}
+.cust-result-meta{font-size:11.5px;color:var(--ink-muted);}
+.badge{
+  display:inline-flex;align-items:center;font-size:10.5px;font-weight:600;letter-spacing:.2px;
+  padding:2px 7px;border-radius:99px;white-space:nowrap;
+}
+.badge-retail{background:var(--bg-2);color:var(--ink-muted);}
+.badge-cart{background:var(--accent-soft);color:var(--accent-hover);}
+.badge-factory{background:var(--brass-soft);color:var(--brass);}
+
+.walkin-chip{
+  display:flex;align-items:center;gap:8px;padding:9px;border-radius:5px;
+  border:1px dashed var(--border-strong);cursor:pointer;font-size:13px;color:var(--ink-muted);
+}
+.walkin-chip.active{border-style:solid;border-color:var(--accent);color:var(--accent);background:var(--accent-soft);}
+.walkin-chip:hover{background:var(--bg-2);}
+
+.active-customer-card{border:1px solid var(--border);border-radius:var(--radius);padding:11px;background:var(--surface-2);}
+.ac-top{display:flex;justify-content:space-between;align-items:flex-start;gap:8px;}
+.ac-photo{width:40px;height:50px;object-fit:cover;border-radius:4px;border:1px solid var(--border);flex:0 0 auto;}
+.ac-name{font-family:var(--font-display);font-weight:600;font-size:15.5px;}
+.ac-phone{font-size:12px;color:var(--ink-muted);display:flex;align-items:center;gap:4px;margin-top:2px;}
+.ac-hist-item{display:flex;justify-content:space-between;font-size:12px;padding:5px 0;border-top:1px solid var(--border);color:var(--ink-muted);}
+.ac-hist-item b{color:var(--ink);font-weight:600;}
+.ac-verified{margin-top:7px;display:flex;align-items:center;gap:5px;font-size:11px;color:var(--money);}
+
+/* members page */
+.members-grid{display:flex;gap:14px;align-items:flex-start;}
+.member-list-col{width:300px;flex:0 0 300px;}
+.member-detail-col{flex:1;min-width:0;}
+@media (max-width:1100px){.members-grid{flex-direction:column;} .member-list-col{width:100%;flex:1 1 auto;}}
+.member-row{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:9px 10px;border:1px solid transparent;border-radius:var(--radius);cursor:pointer;}
+.member-row:hover{background:var(--bg-2);}
+.member-row.active{background:var(--accent-soft);border-color:var(--accent);}
+.member-row-name{font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:5px;}
+.member-row-meta{font-size:11.5px;color:var(--ink-muted);margin-top:1px;}
+.member-photo-lg{width:84px;height:104px;object-fit:cover;border-radius:8px;border:1px solid var(--border);flex:0 0 auto;}
+.member-photo-ph{width:84px;height:104px;border-radius:8px;border:1px dashed var(--border);flex:0 0 auto;display:flex;align-items:center;justify-content:center;color:var(--ink-faint);}
+.cat-breakdown-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-top:1px solid var(--border);font-size:12.5px;}
+.cat-breakdown-row:first-child{border-top:none;}
+
+/* held bills (พักบิล) */
+.held-bill-row{display:flex;align-items:center;gap:8px;padding:8px 9px;border:1px solid var(--border);border-radius:var(--radius);cursor:pointer;background:var(--surface-2);}
+.held-bill-row:hover{background:var(--bg-2);border-color:var(--accent);}
+.held-bill-name{font-size:13px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.held-bill-meta{font-size:11.5px;color:var(--ink-muted);margin-top:1px;}
+
+/* id card */
+.idcard-box{border:1px dashed var(--border-strong);border-radius:5px;padding:10px;background:var(--bg-2);display:flex;flex-direction:column;gap:6px;}
+.idcard-status{display:flex;align-items:center;gap:6px;font-size:11.5px;}
+.idcard-status.ok{color:var(--money);}
+.idcard-status.bad{color:var(--danger);}
+.idcard-status.muted{color:var(--ink-faint);}
+.result-verified{color:var(--money);flex:none;}
+
+/* mode toggle */
+.mode-toggle{display:flex;border:1px solid var(--border-strong);border-radius:6px;overflow:hidden;}
+.mode-toggle button{flex:1;padding:8px 6px;font-size:12.5px;font-weight:600;background:var(--surface-2);border:none;cursor:pointer;color:var(--ink-muted);}
+.mode-toggle button:not(:last-child){border-right:1px solid var(--border-strong);}
+.mode-toggle button.active{background:var(--accent);color:var(--accent-ink);}
+.mode-hint{font-size:11px;color:var(--ink-faint);margin-top:5px;}
+
+/* repeat warning */
+.repeat-warn{
+  margin-top:10px;padding:9px 10px;border-radius:5px;background:var(--brass-soft);color:var(--brass);
+  font-size:12px;display:flex;gap:7px;align-items:flex-start;line-height:1.55;
+}
+.repeat-warn b{color:inherit;}
+
+/* categories */
+.cat-grid{display:flex;flex-direction:column;gap:5px;}
+.cat-btn{
+  display:flex;align-items:center;gap:9px;padding:10px 12px;border-radius:5px;
+  border:1px solid transparent;background:transparent;cursor:pointer;text-align:left;color:var(--ink);
+  font-size:15px;font-weight:600;
+}
+.cat-btn:hover{background:var(--bg-2);}
+.cat-btn.active{background:var(--accent);color:var(--accent-ink);}
+.cat-btn .cat-ico{flex:none;display:flex;color:var(--accent);}
+.cat-btn.active .cat-ico{color:var(--accent-ink);}
+.cat-btn-all.active .cat-ico{color:var(--accent-ink);}
+
+/* quick select + item grid */
+.item-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(128px,1fr));gap:8px;}
+.item-card{
+  border:1px solid var(--border);border-radius:5px;background:var(--surface-2);
+  padding:9px 10px;cursor:pointer;text-align:left;position:relative;
+  display:flex;flex-direction:column;gap:3px;
+}
+.item-card:hover{border-color:var(--accent);}
+.item-card.selected{border-color:var(--accent);background:var(--accent-soft);box-shadow:0 0 0 1px var(--accent);}
+.item-card-code{font-size:10px;font-weight:700;letter-spacing:0.03em;color:var(--ink-faint);}
+.item-card-name{font-size:14.5px;font-weight:700;padding-right:16px;color:var(--item-ink);}
+.item-name-ink{color:var(--item-ink)!important;font-weight:600;}
+.item-card-price{font-size:14px;color:var(--accent);font-weight:700;}
+.item-card-price .unit{color:var(--ink-muted);font-weight:400;}
+.item-star{position:absolute;top:7px;right:7px;color:var(--ink-faint);}
+.item-star.fav{color:var(--brass);}
+
+/* weigh panel */
+.weigh-head{display:flex;align-items:center;justify-content:space-between;}
+.weigh-item-name{font-family:var(--font-display);font-weight:700;font-size:17px;color:var(--item-ink);}
+.weigh-item-cat{font-size:11.5px;color:var(--ink-muted);}
+.weigh-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:9px;margin-top:10px;}
+@media (max-width:1350px){.weigh-grid{grid-template-columns:repeat(2,1fr);}}
+.weigh-net{
+  margin-top:10px;display:flex;align-items:center;justify-content:space-between;
+  background:var(--bg-2);border-radius:5px;padding:10px 12px;
+}
+.weigh-net-label{font-size:12px;color:var(--ink-muted);}
+.weigh-net-val{font-family:var(--font-display);font-weight:700;font-size:25px;}
+.weigh-amt-val{font-family:var(--font-display);font-weight:700;font-size:25px;color:var(--money);}
+
+/* bill table */
+.bill-table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow-y:auto;overflow-x:hidden;background:var(--surface-2);}
+.bill-table-wrap thead th{position:sticky;top:0;background:var(--surface-2);z-index:1;}
+table.bill-table{width:100%;border-collapse:collapse;font-size:14.5px;}
+table.bill-table thead th{
+  text-align:right;font-size:11px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-muted);
+  padding:8px 10px;border-bottom:1px solid var(--border);background:var(--bg-2);font-weight:600;
+}
+table.bill-table thead th:first-child,table.bill-table tbody td:first-child{text-align:left;}
+table.bill-table tbody td{padding:8px 10px;border-bottom:1px solid var(--border);text-align:right;}
+table.bill-table tbody tr:last-child td{border-bottom:none;}
+table.bill-table tbody tr:hover{background:var(--bg-2);}
+.row-actions{display:flex;gap:3px;justify-content:flex-end;}
+.empty-bill{padding:34px 10px;text-align:center;color:var(--ink-faint);font-size:13px;}
+.group-row{cursor:pointer;}
+.group-name-btn{display:inline-flex;align-items:center;gap:6px;background:none;border:none;padding:0;cursor:pointer;color:var(--item-ink);font:inherit;font-weight:700;text-align:left;}
+.group-chevron{transition:transform .15s;flex:none;color:var(--ink-faint);}
+.group-chevron.open{transform:rotate(90deg);}
+.round-badge{font-size:10px;font-weight:600;color:var(--accent);background:var(--accent-soft);padding:1px 6px;border-radius:99px;}
+table.bill-table tr.sub-row td{background:var(--bg-2);}
+table.bill-table tr.sub-row .sub-label{padding-left:27px;color:var(--ink-muted);font-size:12px;}
+table.bill-table tr.sub-row.editing td{background:var(--accent-soft);}
+
+/* right summary */
+.summary-total{
+  background:linear-gradient(160deg, var(--surface-2), var(--surface));
+  border:1px solid var(--border);border-radius:var(--radius);
+  padding:16px;text-align:center;
+}
+.summary-total-label{font-size:11.5px;letter-spacing:.5px;text-transform:uppercase;color:var(--ink-muted);font-weight:600;}
+.summary-total-val{font-family:var(--font-display);font-weight:700;font-size:44px;color:var(--money);line-height:1.15;margin-top:4px;}
+.summary-total-sub{font-size:12px;color:var(--ink-muted);margin-top:6px;display:flex;justify-content:center;gap:14px;}
+.summary-row{display:flex;justify-content:space-between;align-items:center;font-size:13px;padding:7px 0;border-top:1px solid var(--border);}
+.summary-row:first-child{border-top:none;}
+
+/* modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,17,14,.5);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;}
+.modal-card{background:var(--surface);border:1px solid var(--border);border-radius:8px;box-shadow:var(--shadow);width:100%;max-width:460px;max-height:90vh;display:flex;flex-direction:column;}
+.modal-card.wide{max-width:640px;}
+.modal-head{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border-bottom:1px solid var(--border);}
+.modal-head h3{font-size:16px;}
+.modal-body{padding:16px;overflow-y:auto;display:flex;flex-direction:column;gap:12px;}
+.modal-foot{padding:12px 16px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:8px;}
+
+.settings-cat-title{font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-muted);font-weight:700;margin:10px 0 5px;}
+.settings-row{display:grid;grid-template-columns:1.6fr 90px 90px 60px 34px 34px;gap:8px;align-items:center;padding:6px 0;}
+.settings-header{display:grid;grid-template-columns:1.6fr 90px 90px 60px 34px 34px;gap:8px;font-size:11px;text-transform:uppercase;letter-spacing:.3px;color:var(--ink-faint);padding-bottom:5px;border-bottom:1px solid var(--border);margin-bottom:3px;font-weight:700;}
+.settings-header span:not(:first-child){text-align:center;}
+.settings-header-code,.settings-row-code{grid-template-columns:88px 1.6fr 90px 90px 60px 34px 34px;}
+.settings-row .sname{font-size:13px;}
+.settings-row .sunit{font-size:11px;color:var(--ink-muted);text-align:center;}
+
+/* update banner */
+.update-banner{
+  position:fixed;left:0;right:0;bottom:0;z-index:90;
+  display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+  background:var(--accent);color:var(--accent-ink);
+  padding:10px 18px;font-size:13.5px;box-shadow:var(--shadow);
+}
+.update-banner span{flex:1;min-width:220px;}
+.update-banner .btn-primary{background:var(--accent-ink);color:var(--accent);border-color:var(--accent-ink);}
+.update-banner .icon-btn{color:var(--accent-ink);}
+
+/* toast */
+.toast-wrap{position:fixed;bottom:16px;left:50%;transform:translateX(-50%);display:flex;flex-direction:column;gap:6px;z-index:80;}
+.toast{
+  display:flex;align-items:center;gap:8px;background:var(--surface-2);border:1px solid var(--border);
+  box-shadow:var(--shadow);border-radius:6px;padding:9px 14px;font-size:13px;color:var(--ink);
+  animation:toastin .15s ease-out;
+}
+.toast.ok{border-color:var(--money);color:var(--money);}
+.toast.err{border-color:var(--danger);color:var(--danger);}
+@keyframes toastin{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* receipt — IBM Plex Sans Thai สำหรับข้อความ/ชื่อสินค้า (อ่านภาษาไทยชัด), Chakra Petch
+   สำหรับตัวเลข/ราคา (ทรงตัวเลขคมชัดกว่า เหมาะกับเครื่องพิมพ์ความร้อน) */
+.receipt{
+  --r-scale:1;
+  box-sizing:border-box;background:#fff;color:#000;width:80mm;max-width:80mm;margin:0 auto;padding:6px 0;
+  font-family:'IBM Plex Sans Thai',sans-serif;font-size:calc(19px * var(--r-scale));font-weight:700;line-height:1.38;overflow:hidden;
+}
+.receipt *{box-sizing:border-box;font-weight:700;}
+.receipt hr{border:none;border-top:1.5px dashed #666;margin:6px 0;}
+.receipt .r-shop{text-align:center;font-family:'Chakra Petch',sans-serif;font-weight:700;font-size:calc(28px * var(--r-scale));letter-spacing:.2px;}
+.receipt .r-sub{text-align:center;font-family:'Chakra Petch',sans-serif;font-size:calc(15px * var(--r-scale));color:#000;}
+.receipt .r-customer{text-align:center;font-size:calc(21px * var(--r-scale));margin-top:3px;}
+.receipt .r-meta{text-align:center;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:calc(17px * var(--r-scale));color:#000;margin-top:2px;}
+.receipt table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;font-size:calc(17px * var(--r-scale));margin-top:4px;}
+.receipt th{text-align:center;font-family:'Chakra Petch',sans-serif;padding-bottom:4px;border-bottom:2px solid #000;overflow-wrap:break-word;}
+.receipt th:first-child, .receipt td:first-child{text-align:center;overflow-wrap:break-word;}
+.receipt th:first-child{font-family:'IBM Plex Sans Thai',sans-serif;}
+.receipt td{padding:6px 0;text-align:right;vertical-align:top;overflow-wrap:break-word;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;}
+.receipt td:first-child{font-family:'IBM Plex Sans Thai',sans-serif;text-align:center;}
+.receipt .r-total{display:flex;justify-content:space-between;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:calc(28px * var(--r-scale));margin-top:6px;}
+.receipt .r-line{display:flex;justify-content:space-between;font-size:calc(17px * var(--r-scale));}
+.receipt .r-line b{font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;}
+.receipt .r-foot{text-align:center;margin-top:10px;font-size:calc(15px * var(--r-scale));color:#000;}
+
+@media print{
+  body *{visibility:hidden;}
+  #receipt-print,#receipt-print *{visibility:visible;}
+  /* จัดกึ่งกลางไว้ เว้นระยะขอบเล็กน้อย (~1mm ต่อข้าง) เพราะทดสอบแล้วที่กระดาษเต็มความกว้าง
+     ขอบขวาโดนตัดถ้าตัวหนังสือใหญ่ๆ (ยอดเงินหลักพัน) — ความกว้างจริงถูกกำหนดแบบไดนามิกผ่าน
+     inline style ของ #receipt-print (ดู ReceiptModal → printWidthMm) แยกกันระหว่างจุดพิมพ์
+     "จบการขาย" กับ "พิมพ์ซ้ำจากประวัติ" ค่าด้านล่างนี้เป็นแค่ค่าเริ่มต้นสำรอง */
+  #receipt-print{position:fixed;top:0;left:50%;transform:translateX(-50%);width:78mm;}
+  @page{size:80mm auto;margin:0;}
+}
+[hidden]{display:none!important;}
+
+/* ---------- page nav ---------- */
+.page-nav{display:flex;gap:4px;padding:0 18px;background:var(--surface);border-bottom:1px solid var(--border);}
+@media (max-width:1080px){.page-nav{padding:0 14px;overflow-x:auto;}}
+.page-tab{
+  display:flex;align-items:center;gap:8px;padding:12px 16px;border:none;background:none;cursor:pointer;
+  font-size:14.5px;font-weight:600;color:var(--ink-muted);border-bottom:3px solid transparent;white-space:nowrap;
+}
+.page-tab:hover{color:var(--ink);background:var(--bg-2);}
+.page-tab.active{color:var(--accent);border-bottom-color:var(--accent);}
+.page-body{height:100%;overflow-y:auto;padding:18px;display:flex;flex-direction:column;gap:14px;}
+@media (max-width:1080px){.page-body{height:auto;overflow:visible;}}
+.page-header{display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px;}
+.page-title{font-family:var(--font-display);font-weight:700;font-size:22px;}
+.page-sub{font-size:13.5px;color:var(--ink-muted);margin-top:2px;}
+
+/* ---------- numpad ---------- */
+.numpad{background:var(--surface-2);border:1px solid var(--border);border-radius:var(--radius);padding:10px;}
+.numpad-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:7px;}
+.numpad-btn{
+  padding:14px 0;border-radius:6px;border:1px solid var(--border-strong);background:var(--bg-2);
+  color:var(--ink);font-family:var(--font-display);font-size:19px;font-weight:600;cursor:pointer;
+  display:flex;align-items:center;justify-content:center;
+}
+.numpad-btn:hover{background:var(--accent-soft);border-color:var(--accent);}
+.numpad-btn:active{transform:translateY(1px);}
+.numpad-clear{width:100%;margin-top:7px;padding:11px 0;border-radius:6px;border:1px solid var(--danger);background:var(--danger-soft);color:var(--danger);font-weight:700;font-size:14px;cursor:pointer;}
+.numpad-confirm{width:100%;margin-top:7px;}
+
+/* ---------- inventory / history / settings pages ---------- */
+.data-table-wrap{border:1px solid var(--border);border-radius:var(--radius);overflow:auto;background:var(--surface-2);}
+table.data-table{width:100%;border-collapse:collapse;font-size:14.5px;}
+table.data-table thead th{
+  text-align:left;font-size:12px;text-transform:uppercase;letter-spacing:.4px;color:var(--ink-muted);
+  padding:10px 12px;border-bottom:1px solid var(--border);background:var(--bg-2);font-weight:700;white-space:nowrap;
+}
+table.data-table tbody td{padding:9px 12px;border-bottom:1px solid var(--border);vertical-align:middle;}
+table.data-table tbody tr:last-child td{border-bottom:none;}
+table.data-table tbody tr:hover{background:var(--bg-2);}
+.inline-input{border:1px solid var(--border-strong);border-radius:5px;background:var(--surface-2);color:var(--ink);padding:6px 8px;font-size:14px;width:100%;}
+.inline-input:focus{outline:2px solid var(--accent);outline-offset:-1px;}
+
+.stat-row{display:flex;gap:12px;flex-wrap:wrap;}
+.stat-tile{flex:1;min-width:160px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;}
+.stat-tile-label{font-size:12px;color:var(--ink-muted);text-transform:uppercase;letter-spacing:.4px;font-weight:700;}
+.stat-tile-val{font-family:var(--font-display);font-weight:700;font-size:26px;margin-top:4px;}
+
+.drive-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:16px;display:flex;flex-direction:column;gap:12px;}
+.drive-status-row{display:flex;align-items:center;gap:10px;}
+.drive-dot{width:10px;height:10px;border-radius:99px;background:var(--ink-faint);flex:none;}
+.drive-dot.on{background:var(--money);box-shadow:0 0 0 4px var(--money-soft);}
+.setup-steps{font-size:13.5px;color:var(--ink-muted);line-height:1.9;background:var(--bg-2);border-radius:5px;padding:12px 16px;}
+.setup-steps b{color:var(--ink);}
+.setup-steps a{color:var(--accent);}
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" data-presets="react">
+const {useState,useEffect,useMemo,useRef,useCallback} = React;
+
+const hasDesktop = typeof window !== "undefined" && !!window.scrapAPI;
+
+/* ============================= ICONS ============================= */
+function Ico({children,size=18,strokeWidth=2,className=""}){
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor"
+      strokeWidth={strokeWidth} strokeLinecap="round" strokeLinejoin="round" className={className}
+      style={{flex:"none"}}>
+      {children}
+    </svg>
+  );
+}
+const Icon = ({name, ...p}) => {
+  switch(name){
+    case "search": return <Ico {...p}><circle cx="11" cy="11" r="7"/><line x1="21" y1="21" x2="16.6" y2="16.6"/></Ico>;
+    case "userPlus": return <Ico {...p}><circle cx="9" cy="7.5" r="3.8"/><path d="M2.5 20.5v-1.2a5 5 0 0 1 5-5h3a5 5 0 0 1 5 5v1.2"/><line x1="19" y1="8" x2="19" y2="14"/><line x1="16" y1="11" x2="22" y2="11"/></Ico>;
+    case "user": return <Ico {...p}><circle cx="12" cy="8" r="4"/><path d="M4 20.5c0-4.4 3.6-8 8-8s8 3.6 8 8"/></Ico>;
+    case "x": return <Ico {...p}><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></Ico>;
+    case "plus": return <Ico {...p}><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></Ico>;
+    case "trash": return <Ico {...p}><path d="M4 7h16"/><path d="M9 7V4.6A1.6 1.6 0 0 1 10.6 3h2.8A1.6 1.6 0 0 1 15 4.6V7"/><path d="M6.5 7l1 12.4A2 2 0 0 0 9.5 21h5a2 2 0 0 0 2-1.6L17.5 7"/><line x1="10.5" y1="11" x2="10.5" y2="17"/><line x1="13.5" y1="11" x2="13.5" y2="17"/></Ico>;
+    case "pencil": return <Ico {...p}><path d="M12.5 19.5H21"/><path d="M16 4.5a2 2 0 0 1 2.8 2.8L7.5 18.6l-4 1 1-4Z"/></Ico>;
+    case "printer": return <Ico {...p}><rect x="6" y="13" width="12" height="8" rx="1"/><path d="M6 9V3h12v6"/><rect x="2.3" y="9" width="19.4" height="6.5" rx="1.6"/></Ico>;
+    case "download": return <Ico {...p}><path d="M12 3v12"/><path d="M7 10l5 5 5-5"/><path d="M4 21h16"/></Ico>;
+    case "star": return <Ico {...p}><path d="M12 2.5l2.95 6.32 6.55.68-4.9 4.66 1.36 6.66L12 17.65l-5.96 3.17 1.36-6.66-4.9-4.66 6.55-.68Z"/></Ico>;
+    case "receipt": return <Ico {...p}><path d="M6 2.5h12v18l-2.2-1.4L13.6 20.5l-1.6-1.4-1.6 1.4-2.2-1.4-2.2 1.4Z"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="9" y1="12" x2="15" y2="12"/></Ico>;
+    case "settings": {
+      const lines = Array.from({length:8}).map((_,i)=>{
+        const a = (i*45)*Math.PI/180;
+        const x1 = 12+Math.cos(a)*7.4, y1=12+Math.sin(a)*7.4;
+        const x2 = 12+Math.cos(a)*9.4, y2=12+Math.sin(a)*9.4;
+        return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2}/>;
+      });
+      return <Ico {...p}>{lines}<circle cx="12" cy="12" r="4"/></Ico>;
+    }
+    case "chevronRight": return <Ico {...p}><polyline points="9 5 16 12 9 19"/></Ico>;
+    case "phone": return <Ico {...p}><path d="M6.6 10.8a14.7 14.7 0 0 0 6.6 6.6l2.2-2.2a1.2 1.2 0 0 1 1.2-.3c1.2.4 2.5.6 3.8.6.7 0 1.2.5 1.2 1.2V20a1.2 1.2 0 0 1-1.2 1.2C11 21.2 2.8 13 2.8 3.7A1.2 1.2 0 0 1 4 2.5h3.3c.7 0 1.2.5 1.2 1.2 0 1.3.2 2.6.6 3.8.1.4 0 .9-.3 1.2Z"/></Ico>;
+    case "scale": return <Ico {...p}><line x1="12" y1="3" x2="12" y2="21"/><path d="M4 21h16"/><path d="M4 7h16"/><path d="M4 7l-2.2 5.2a2.6 2.6 0 0 0 4.9 0Z"/><path d="M20 7l-2.2 5.2a2.6 2.6 0 0 0 4.9 0Z"/></Ico>;
+    case "package": return <Ico {...p}><path d="M3 7.5 12 3l9 4.5-9 4.5-9-4.5Z"/><path d="M3 7.5v9L12 21l9-4.5v-9"/><line x1="12" y1="12" x2="12" y2="21"/></Ico>;
+    case "fileText": return <Ico {...p}><path d="M6.5 2.5h7l4 4v15h-11Z"/><line x1="9" y1="9.2" x2="11.5" y2="9.2"/><line x1="9" y1="13" x2="14.5" y2="13"/><line x1="9" y1="16.5" x2="14.5" y2="16.5"/></Ico>;
+    case "bottle": return <Ico {...p}><path d="M9.3 2.5h5.4v3.4l1.9 3v11.6a1.3 1.3 0 0 1-1.3 1.3H8.7a1.3 1.3 0 0 1-1.3-1.3V8.9l1.9-3Z"/><line x1="9.3" y1="2.5" x2="9.3" y2="5.9"/><line x1="14.7" y1="2.5" x2="14.7" y2="5.9"/><line x1="8" y1="12" x2="16" y2="12"/></Ico>;
+    case "gem": return <Ico {...p}><path d="M4 9 8.5 3h7L20 9l-8 12Z"/><path d="M4 9h16"/><path d="M8.5 3 12 9l-2.5 12"/><path d="M15.5 3 12 9l2.5 12"/></Ico>;
+    case "cup": return <Ico {...p}><path d="M7.5 2.5h9l-1.2 9.4a3.3 3.3 0 0 1-6.6 0Z"/><line x1="12" y1="12.6" x2="12" y2="18"/><line x1="8" y1="21" x2="16" y2="21"/></Ico>;
+    case "magnet": return <Ico {...p}><path d="M6 15V10a6 6 0 0 1 12 0v5"/><path d="M6 15h4v4.5a2 2 0 0 1-4 0Z"/><path d="M14 15h4v4.5a2 2 0 0 1-4 0Z"/></Ico>;
+    case "check": return <Ico {...p}><polyline points="20 6 9 17 4 12"/></Ico>;
+    case "alert": return <Ico {...p}><path d="M10.3 3.8 2 18a2 2 0 0 0 1.7 3h16.6a2 2 0 0 0 1.7-3L13.7 3.8a2 2 0 0 0-3.4 0Z"/><line x1="12" y1="9.3" x2="12" y2="13.3"/><line x1="12" y1="16.6" x2="12" y2="16.7"/></Ico>;
+    case "history": return <Ico {...p}><path d="M3.5 12a8.5 8.5 0 1 0 2.7-6.2"/><polyline points="3 3.5 3.5 7.8 8 7.3"/><polyline points="12 8 12 12.5 15.5 14.3"/></Ico>;
+    case "broom": return <Ico {...p}><path d="M19 3 9.5 12.5"/><path d="M6 21c-1.7 0-3-1.3-3-3 2 0 2-2 4-2s2 2 4 2c0 1.7-1.3 3-3 3Z"/><path d="M9.5 12.5 6 16c1.2 1.2 2.8 1.2 4 0l3.5-3.5"/></Ico>;
+    case "creditCard": return <Ico {...p}><rect x="2.3" y="5" width="19.4" height="14" rx="2"/><line x1="2.3" y1="9.8" x2="21.7" y2="9.8"/><line x1="5.5" y1="15" x2="9.5" y2="15"/></Ico>;
+    case "shieldCheck": return <Ico {...p}><path d="M12 2.5 20 5.5v6c0 5-3.4 8.4-8 10-4.6-1.6-8-5-8-10v-6Z"/><polyline points="8.4 12.2 11 14.8 15.6 9.7"/></Ico>;
+    case "hardDrive": return <Ico {...p}><line x1="2.5" y1="13" x2="21.5" y2="13"/><rect x="2.5" y="4" width="19" height="16" rx="2"/><line x1="6.5" y1="17" x2="6.51" y2="17"/><line x1="10.5" y1="17" x2="10.51" y2="17"/></Ico>;
+    case "smartphone": return <Ico {...p}><rect x="6" y="2.5" width="12" height="19" rx="2.2"/><line x1="10.5" y1="18.3" x2="13.5" y2="18.3"/></Ico>;
+    case "cloud": return <Ico {...p}><path d="M7 18.5a4.5 4.5 0 0 1-.5-8.97A6 6 0 0 1 18 8.6 4.5 4.5 0 0 1 17 18.5H7Z"/></Ico>;
+    case "refresh": return <Ico {...p}><path d="M3.5 12a8.5 8.5 0 0 1 14.4-6.1"/><polyline points="18 2.5 18 6.5 14 6.5"/><path d="M20.5 12a8.5 8.5 0 0 1-14.4 6.1"/><polyline points="6 21.5 6 17.5 10 17.5"/></Ico>;
+    case "unlink": return <Ico {...p}><path d="M9 15 15 9"/><path d="M10.5 5.5 12 4a3.5 3.5 0 0 1 5 5l-1.5 1.5"/><path d="M13.5 18.5 12 20a3.5 3.5 0 0 1-5-5l1.5-1.5"/><line x1="3" y1="3" x2="21" y2="21"/></Ico>;
+    case "eye": return <Ico {...p}><path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></Ico>;
+    case "folder": return <Ico {...p}><path d="M3 6.5a1.5 1.5 0 0 1 1.5-1.5h4l2 2.5h8.5A1.5 1.5 0 0 1 20.5 9v8a1.5 1.5 0 0 1-1.5 1.5H4.5A1.5 1.5 0 0 1 3 17Z"/></Ico>;
+    case "zap": return <Ico {...p}><polygon points="12.5 2.5 4 14 11 14 10.5 21.5 19.5 10 12.5 10"/></Ico>;
+    case "layers": return <Ico {...p}><polygon points="12 3 21 8 12 13 3 8"/><polyline points="3 13 12 18 21 13"/><polyline points="3 17.5 12 22.5 21 17.5"/></Ico>;
+    case "coins": return <Ico {...p}><ellipse cx="9" cy="7" rx="6.5" ry="3.3"/><path d="M2.5 7v5c0 1.8 2.9 3.3 6.5 3.3s6.5-1.5 6.5-3.3V7"/><path d="M2.5 12v5c0 1.8 2.9 3.3 6.5 3.3s6.5-1.5 6.5-3.3v-5"/></Ico>;
+    case "users": return <Ico {...p}><circle cx="8.5" cy="8" r="3.3"/><path d="M2.5 20c0-3.6 2.7-6.5 6-6.5s6 2.9 6 6.5"/><path d="M15.5 6.3a3.2 3.2 0 0 1 0 6.3"/><path d="M17.5 13.6c2.4.6 4 2.9 4 6.4"/></Ico>;
+    case "wallet": return <Ico {...p}><path d="M3 7.5a2 2 0 0 1 2-2h13a1.5 1.5 0 0 1 1.5 1.5V9"/><path d="M3 7.5V18a2 2 0 0 0 2 2h14a1.5 1.5 0 0 0 1.5-1.5v-8A1.5 1.5 0 0 0 19 9H6a2 2 0 0 1-2-2Z"/><circle cx="16.5" cy="14" r="1.4"/></Ico>;
+    default: return null;
+  }
+};
+
+/* ============================= DATA ============================= */
+const LS_KEY = "scrap_pos_data_v1";
+
+function loadInitialData(){
+  if(hasDesktop){
+    try{ return window.scrapAPI.loadDataSync() || null; }catch(e){ return null; }
+  }
+  try{
+    const raw = localStorage.getItem(LS_KEY);
+    return raw ? JSON.parse(raw) : null;
+  }catch(e){ return null; }
+}
+function persistData(data){
+  if(hasDesktop){
+    window.scrapAPI.saveData(data).catch(()=>{});
+  } else {
+    try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
+  }
+}
+
+// ธีม (มืด/สว่าง) และขนาดตัวอักษร เป็นการตั้งค่าเฉพาะเครื่อง/หน้าจอนี้เท่านั้น (ไม่ซิงก์ข้ามอุปกรณ์
+// ผ่าน LAN เหมือนข้อมูลร้าน เพราะแต่ละจออาจอยู่คนละที่ คนละสภาพแสง หรือผู้ใช้คนละคน) — เก็บใน
+// localStorage ของเครื่องนั้นๆ โดยตรง
+const THEME_KEY = "scrap_pos_theme";
+const UI_SCALE_KEY = "scrap_pos_ui_scale";
+function loadLocalTheme(){ try{ return localStorage.getItem(THEME_KEY) || "system"; }catch(e){ return "system"; } }
+function saveLocalTheme(v){ try{ localStorage.setItem(THEME_KEY, v); }catch(e){} }
+function loadLocalUiScale(){ try{ const v = parseFloat(localStorage.getItem(UI_SCALE_KEY)); return (v && v>0) ? v : 1; }catch(e){ return 1; } }
+function saveLocalUiScale(v){ try{ localStorage.setItem(UI_SCALE_KEY, String(v)); }catch(e){} }
+
+const DEFAULT_CATEGORIES = [
+  { id:"scrap", label:"เศษเหล็ก", icon:"magnet" },
+  { id:"paper", label:"กระดาษ", icon:"fileText" },
+  { id:"plastic", label:"พลาสติก", icon:"bottle" },
+  { id:"precious", label:"โลหะมีค่า", icon:"gem" },
+  { id:"glass", label:"แก้ว", icon:"cup" },
+  { id:"electronics", label:"เครื่องใช้ไฟฟ้า/อิเล็กทรอนิกส์", icon:"zap" },
+  { id:"misc", label:"อื่นๆ", icon:"layers" },
+];
+
+// รายการสินค้าตั้งต้นครอบคลุมของที่ร้านรับซื้อของเก่าทั่วไปมักรับซื้อ
+// ราคาที่ตั้งไว้เป็นเพียงตัวเลขเริ่มต้นโดยประมาณ ควรปรับให้ตรงกับราคาตลาดจริงที่หน้าร้าน
+const DEFAULT_CATALOG = [
+  // เศษเหล็ก
+  { id:"scrap-thick", code:"FE01", category:"scrap", name:"เศษเหล็กหนา", unit:"กก.", mode:"weight", priceRegular:8.5, priceCasual:8, quick:true },
+  { id:"scrap-thin", code:"FE02", category:"scrap", name:"เศษเหล็กบาง", unit:"กก.", mode:"weight", priceRegular:5, priceCasual:4.5, quick:true },
+  { id:"scrap-rebar", code:"FE03", category:"scrap", name:"เหล็กเส้น/เหล็กโครงสร้าง", unit:"กก.", mode:"weight", priceRegular:7, priceCasual:6.5, quick:false },
+  { id:"scrap-cast", code:"FE04", category:"scrap", name:"เหล็กหล่อ", unit:"กก.", mode:"weight", priceRegular:6, priceCasual:5.5, quick:false },
+  { id:"scrap-drum", code:"FE05", category:"scrap", name:"ถังเหล็ก/ถังแก๊ส", unit:"กก.", mode:"weight", priceRegular:6.5, priceCasual:6, quick:false },
+  { id:"scrap-rusty", code:"FE06", category:"scrap", name:"เศษเหล็กปนสนิม", unit:"กก.", mode:"weight", priceRegular:4, priceCasual:3.5, quick:false },
+  { id:"scrap-wheel", code:"FE07", category:"scrap", name:"ล้อแม็กเหล็ก", unit:"กก.", mode:"weight", priceRegular:9, priceCasual:8.5, quick:false },
+  // กระดาษ
+  { id:"paper-box", code:"PA01", category:"paper", name:"กระดาษลัง", unit:"กก.", mode:"weight", priceRegular:4.5, priceCasual:4, quick:true },
+  { id:"paper-bw", code:"PA02", category:"paper", name:"กระดาษขาวดำ", unit:"กก.", mode:"weight", priceRegular:3.2, priceCasual:2.8, quick:false },
+  { id:"paper-color", code:"PA03", category:"paper", name:"กระดาษสี/กระดาษออฟฟิศ", unit:"กก.", mode:"weight", priceRegular:3.5, priceCasual:3, quick:false },
+  { id:"paper-magazine", code:"PA04", category:"paper", name:"นิตยสาร/กระดาษมัน", unit:"กก.", mode:"weight", priceRegular:3, priceCasual:2.5, quick:false },
+  { id:"paper-book", code:"PA05", category:"paper", name:"สมุด/หนังสือเก่า", unit:"กก.", mode:"weight", priceRegular:2.5, priceCasual:2, quick:false },
+  // พลาสติก
+  { id:"plastic-pet", code:"PL01", category:"plastic", name:"ขวดใส PET", unit:"กก.", mode:"weight", priceRegular:6.5, priceCasual:6, quick:true },
+  { id:"plastic-mix", code:"PL02", category:"plastic", name:"พลาสติกรวม", unit:"กก.", mode:"weight", priceRegular:3, priceCasual:2.5, quick:false },
+  { id:"plastic-hdpe", code:"PL03", category:"plastic", name:"ขวดขุ่น HDPE", unit:"กก.", mode:"weight", priceRegular:5, priceCasual:4.5, quick:false },
+  { id:"plastic-bag", code:"PL04", category:"plastic", name:"ถุงพลาสติก", unit:"กก.", mode:"weight", priceRegular:2, priceCasual:1.5, quick:false },
+  { id:"plastic-crate", code:"PL05", category:"plastic", name:"ลังพลาสติก/เข่ง", unit:"กก.", mode:"weight", priceRegular:4, priceCasual:3.5, quick:false },
+  { id:"plastic-pvc", code:"PL06", category:"plastic", name:"ท่อ PVC", unit:"กก.", mode:"weight", priceRegular:3.5, priceCasual:3, quick:false },
+  // โลหะมีค่า / นอกกลุ่มเหล็ก
+  { id:"copper", code:"NF01", category:"precious", name:"ทองแดงเบอร์ 1", unit:"กก.", mode:"weight", priceRegular:235, priceCasual:225, quick:true },
+  { id:"copper2", code:"NF02", category:"precious", name:"ทองแดงเบอร์ 2 (ปนฉนวน)", unit:"กก.", mode:"weight", priceRegular:200, priceCasual:190, quick:false },
+  { id:"brass", code:"NF03", category:"precious", name:"ทองเหลือง", unit:"กก.", mode:"weight", priceRegular:132, priceCasual:125, quick:false },
+  { id:"aluminum", code:"NF04", category:"precious", name:"อลูมิเนียมเส้น/ลวด", unit:"กก.", mode:"weight", priceRegular:38, priceCasual:35, quick:true },
+  { id:"aluminum-can", code:"NF05", category:"precious", name:"กระป๋องอลูมิเนียม", unit:"กก.", mode:"weight", priceRegular:32, priceCasual:30, quick:true },
+  { id:"aluminum-wheel", code:"NF06", category:"precious", name:"ล้อแม็กอลูมิเนียม", unit:"กก.", mode:"weight", priceRegular:45, priceCasual:42, quick:false },
+  { id:"stainless", code:"NF07", category:"precious", name:"สแตนเลส", unit:"กก.", mode:"weight", priceRegular:25, priceCasual:22, quick:false },
+  { id:"zinc", code:"NF08", category:"precious", name:"สังกะสี", unit:"กก.", mode:"weight", priceRegular:30, priceCasual:28, quick:false },
+  { id:"lead", code:"NF09", category:"precious", name:"ตะกั่ว", unit:"กก.", mode:"weight", priceRegular:28, priceCasual:26, quick:false },
+  // แก้ว
+  { id:"glass-beer", code:"GL01", category:"glass", name:"ขวดเบียร์", unit:"ใบ", mode:"unit", priceRegular:1, priceCasual:0.8, quick:true },
+  { id:"glass-clear", code:"GL02", category:"glass", name:"ขวดแก้วใส", unit:"กก.", mode:"weight", priceRegular:1.2, priceCasual:1, quick:false },
+  { id:"glass-color", code:"GL03", category:"glass", name:"ขวดแก้วสี", unit:"กก.", mode:"weight", priceRegular:1, priceCasual:0.8, quick:false },
+  { id:"glass-mix", code:"GL04", category:"glass", name:"แก้วรวม", unit:"กก.", mode:"weight", priceRegular:1, priceCasual:0.8, quick:false },
+  // เครื่องใช้ไฟฟ้า/อิเล็กทรอนิกส์
+  { id:"e-wire", code:"EL01", category:"electronics", name:"สายไฟ/สายเคเบิล", unit:"กก.", mode:"weight", priceRegular:20, priceCasual:17, quick:true },
+  { id:"e-battery-car", code:"EL02", category:"electronics", name:"แบตเตอรี่รถยนต์", unit:"กก.", mode:"weight", priceRegular:15, priceCasual:13, quick:false },
+  { id:"e-motor", code:"EL03", category:"electronics", name:"มอเตอร์ไฟฟ้า", unit:"กก.", mode:"weight", priceRegular:12, priceCasual:10, quick:false },
+  { id:"e-pcb", code:"EL04", category:"electronics", name:"แผงวงจร/บอร์ดอิเล็กทรอนิกส์", unit:"กก.", mode:"weight", priceRegular:25, priceCasual:20, quick:false },
+  { id:"e-fan", code:"EL05", category:"electronics", name:"พัดลมเก่า", unit:"ตัว", mode:"unit", priceRegular:20, priceCasual:15, quick:false },
+  { id:"e-tv", code:"EL06", category:"electronics", name:"ทีวี/จอเก่า", unit:"เครื่อง", mode:"unit", priceRegular:30, priceCasual:25, quick:false },
+  { id:"e-battery-phone", code:"EL07", category:"electronics", name:"แบตมือถือ/โน้ตบุ๊ค", unit:"ก้อน", mode:"unit", priceRegular:5, priceCasual:3, quick:false },
+  // อื่นๆ
+  { id:"misc-tire", code:"MS01", category:"misc", name:"ยางรถยนต์เก่า", unit:"เส้น", mode:"unit", priceRegular:10, priceCasual:8, quick:false },
+  { id:"misc-cloth", code:"MS02", category:"misc", name:"เศษผ้า/เสื้อผ้าเก่า", unit:"กก.", mode:"weight", priceRegular:3, priceCasual:2.5, quick:false },
+];
+function migrateCatalog(list){
+  return (list||[]).map(it=>{
+    if(it.priceRegular!=null && it.priceCasual!=null) return it;
+    const p = it.price!=null ? it.price : 0;
+    const {price, ...rest} = it;
+    return {...rest, priceRegular:p, priceCasual:p};
+  });
+}
+const PRICE_MODES = [
+  { id:"regular", label:"ราคาประจำ" },
+  { id:"casual", label:"ราคาจร" },
+];
+function priceOf(item, mode){ return mode==="regular" ? item.priceRegular : item.priceCasual; }
+
+const DEFAULT_SETTINGS = { storeName: "ว.วรรณ รับซื้อของเก่า" };
+
+const PAGES = [
+  { id:"pos", label:"ขายสินค้า", icon:"scale" },
+  { id:"inventory", label:"จัดการสินค้า", icon:"package" },
+  { id:"members", label:"จัดการสมาชิก", icon:"users" },
+  { id:"history", label:"ประวัติการขาย", icon:"history" },
+  { id:"income", label:"รายรับเสริม", icon:"coins" },
+  { id:"payroll", label:"เงินเดือน/เบิกเงิน", icon:"wallet" },
+  { id:"settings", label:"ตั้งค่า", icon:"settings" },
+];
+
+function setReactInputValue(el, value){
+  const proto = Object.getPrototypeOf(el);
+  const desc = Object.getOwnPropertyDescriptor(proto, "value");
+  desc.set.call(el, value);
+  el.dispatchEvent(new Event("input", {bubbles:true}));
+}
+
+function isValidThaiID(id){
+  if(!/^[0-9]{13}$/.test(id)) return false;
+  let sum = 0;
+  for(let i=0;i<12;i++) sum += Number(id.charAt(i)) * (13-i);
+  const check = (11 - (sum % 11)) % 10;
+  return check === Number(id.charAt(12));
+}
+function maskThaiID(id){
+  const c = (id||"").replace(/\D/g,"");
+  if(c.length<13) return c;
+  return `${c[0]}-XXXX-XXXXX-XX-${c[12]}`;
+}
+
+const CUSTOMER_TYPES = [
+  { id:"retail", label:"รายย่อยทั่วไป", badge:"badge-retail" },
+  { id:"cart", label:"ซาเล้งประจำ", badge:"badge-cart" },
+  { id:"factory", label:"โรงงาน", badge:"badge-factory" },
+];
+const typeMeta = id => CUSTOMER_TYPES.find(t=>t.id===id) || CUSTOMER_TYPES[0];
+
+// กรองค่าที่พิมพ์/กดจากปุ่มเลข ให้เหลือแค่ตัวเลขกับจุดทศนิยมจุดเดียว — ใช้กับ input type="text"
+// (ไม่ใช้ type="number" เพราะเบราว์เซอร์จะเคลียร์ค่าทิ้งทันทีถ้า value ที่ set ผ่าน JS ลงท้ายด้วย "."
+// เช่น "5." ซึ่งเป็นสถานะปกติระหว่างพิมพ์เลขทศนิยมทีละหลัก)
+function filterDecimalInput(v){
+  let s = String(v).replace(/[^0-9.]/g, "");
+  const firstDot = s.indexOf(".");
+  if(firstDot !== -1) s = s.slice(0, firstDot+1) + s.slice(firstDot+1).replace(/\./g, "");
+  return s;
+}
+const money = n => (Number(n)||0).toLocaleString("th-TH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const kg = n => (Number(n)||0).toLocaleString("th-TH",{minimumFractionDigits:2,maximumFractionDigits:2});
+const uid = () => Math.random().toString(36).slice(2,10)+Date.now().toString(36).slice(-4);
+const todayKey = () => new Date().toISOString().slice(0,10);
+const monthKeyToday = () => new Date().toISOString().slice(0,7);
+const monthKeyOf = (iso) => (iso||"").slice(0,7);
+function fmtMonthLabel(monthKey){
+  if(!monthKey) return "";
+  const [y,m] = monthKey.split("-").map(Number);
+  const d = new Date(y, m-1, 1);
+  return d.toLocaleDateString("th-TH",{month:"long",year:"numeric"});
+}
+function financeSummaryFor(monthKey, {bills, extraIncome, advances}){
+  const scrapPurchases = bills.filter(b=>monthKeyOf(b.date)===monthKey).reduce((s,b)=>s+billStats(b).amount,0);
+  const incomeTotal = extraIncome.filter(i=>monthKeyOf(i.date)===monthKey).reduce((s,i)=>s+i.amount,0);
+  const advanceTotal = advances.filter(a=>monthKeyOf(a.date)===monthKey).reduce((s,a)=>s+a.amount,0);
+  return { scrapPurchases, incomeTotal, advanceTotal, net: incomeTotal - advanceTotal };
+}
+function fmtDateTime(iso){
+  const d = new Date(iso);
+  return d.toLocaleDateString("th-TH",{day:"2-digit",month:"2-digit",year:"2-digit"}) + " " +
+         d.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"});
+}
+function fmtDateOnlyTH(dateStr){
+  // dateStr เป็น "YYYY-MM-DD" ธรรมดา (จาก <input type="date">) ไม่ใช่ ISO datetime
+  const d = new Date(dateStr + "T00:00:00");
+  return d.toLocaleDateString("th-TH",{day:"2-digit",month:"2-digit",year:"2-digit"});
+}
+
+function billStats(bill){
+  let weight=0, amount=0;
+  bill.items.forEach(it=>{ if(it.mode==="weight") weight+=it.net; amount+=it.amount; });
+  return {weight, amount};
+}
+function customerStats(customerId, bills){
+  const mine = bills.filter(b=>b.customerId===customerId);
+  let spent=0;
+  mine.forEach(b=>{ spent+=billStats(b).amount; });
+  return { visits:mine.length, spent, bills: mine.slice().sort((a,b)=>b.date.localeCompare(a.date)) };
+}
+
+/* ============================= TOASTS ============================= */
+function useToasts(){
+  const [toasts,setToasts] = useState([]);
+  const push = useCallback((message,type="ok")=>{
+    const id = uid();
+    setToasts(t=>[...t,{id,message,type}]);
+    setTimeout(()=>setToasts(t=>t.filter(x=>x.id!==id)), 2800);
+  },[]);
+  return {toasts, push};
+}
+
+/* ============================= APP ============================= */
+function App(){
+  const initial = useMemo(()=>loadInitialData() || {}, []);
+  const [customers,setCustomers] = useState(initial.customers || []);
+  const [catalog,setCatalog] = useState(()=>migrateCatalog(initial.catalog && initial.catalog.length ? initial.catalog : DEFAULT_CATALOG));
+  const [categories,setCategories] = useState(()=> initial.categories && initial.categories.length ? initial.categories : DEFAULT_CATEGORIES);
+  const [bills,setBills] = useState(initial.bills || []);
+  const [extraIncome,setExtraIncome] = useState(initial.extraIncome || []);
+  const [employees,setEmployees] = useState(initial.employees || []);
+  const [advances,setAdvances] = useState(initial.advances || []);
+  const [selectedCustomerId,setSelectedCustomerId] = useState(initial.draft ? initial.draft.customerId : null);
+  const [billItems,setBillItems] = useState(initial.draft ? (initial.draft.items || []) : []);
+  const [heldBills,setHeldBills] = useState(initial.heldBills || []);
+  // จดชื่อเล่น/ทะเบียนรถของ "ลูกค้าทั่วไป" ไว้ชั่วคราวต่อบิล โดยไม่ต้องสมัครเป็นสมาชิก
+  const [walkInNickname,setWalkInNickname] = useState(initial.draft ? (initial.draft.walkInNickname || "") : "");
+  const [walkInLicensePlate,setWalkInLicensePlate] = useState(initial.draft ? (initial.draft.walkInLicensePlate || "") : "");
+  const [settings,setSettings] = useState({...DEFAULT_SETTINGS, ...(initial.settings||{})});
+  const [theme,setThemeState] = useState(loadLocalTheme);
+  const [uiScale,setUiScaleState] = useState(loadLocalUiScale);
+  const [page,setPage] = useState("pos");
+  const activeInputRef = useRef(null);
+
+  const [selectedCategory,setSelectedCategory] = useState("all");
+  const [itemSearch,setItemSearch] = useState("");
+  const [activeItemId,setActiveItemId] = useState(null);
+  const [gross,setGross] = useState(""); const [tare,setTare] = useState("0"); const [deductPct,setDeductPct] = useState("0");
+  const [qty,setQty] = useState(""); const [priceOverride,setPriceOverride] = useState("");
+  const [editingId,setEditingId] = useState(null);
+  const [priceMode,setPriceMode] = useState("casual");
+
+  const [search,setSearch] = useState("");
+  const [showAddCustomer,setShowAddCustomer] = useState(false);
+  const [cardPrefill,setCardPrefill] = useState(null);
+  const [showReceipt,setShowReceipt] = useState(false);
+  const [lastBill,setLastBill] = useState(null);
+  const [editingBill,setEditingBill] = useState(null);
+  const [receiptPrintWidthMm,setReceiptPrintWidthMm] = useState(77);
+  const [receiptFontScale,setReceiptFontScale] = useState(1);
+  const [dataDir,setDataDir] = useState("");
+  const [netStatus,setNetStatus] = useState("connecting"); // connecting | online | offline
+  const [lanInfo,setLanInfo] = useState(null);
+  const [showConnect,setShowConnect] = useState(false);
+  const [updateInfo,setUpdateInfo] = useState(null);
+  const wsRef = useRef(null);
+
+  const {toasts, push} = useToasts();
+
+  // อัปเดตอัตโนมัติ: ตัวโปรแกรมหลัก (main.js) เช็ค/ดาวน์โหลดอัปเดตจาก GitHub Releases เบื้องหลัง
+  // ให้เอง — ฝั่งนี้แค่รอรับแจ้งเตือนตอนดาวน์โหลดเสร็จ แล้วแสดงแถบให้กดรีสตาร์ทเพื่อติดตั้ง
+  useEffect(()=>{
+    if(!hasDesktop || !window.scrapAPI.onUpdateDownloaded) return;
+    return window.scrapAPI.onUpdateDownloaded((info)=>setUpdateInfo(info));
+  },[]);
+
+  useEffect(()=>{
+    persistData({ customers, catalog, categories, bills, extraIncome, employees, advances, settings, draft:{customerId:selectedCustomerId, items:billItems, walkInNickname, walkInLicensePlate}, heldBills });
+  },[customers, catalog, categories, bills, extraIncome, employees, advances, settings, selectedCustomerId, billItems, heldBills, walkInNickname, walkInLicensePlate]);
+
+  function setTheme(v){ setThemeState(v); saveLocalTheme(v); }
+  function setUiScale(v){ setUiScaleState(v); saveLocalUiScale(v); }
+
+  useEffect(()=>{
+    if(theme==="system") delete document.documentElement.dataset.theme;
+    else document.documentElement.dataset.theme = theme;
+  },[theme]);
+
+  useEffect(()=>{
+    document.documentElement.style.zoom = String(uiScale);
+    document.documentElement.classList.toggle("ui-scaled", uiScale!==1);
+  },[uiScale]);
+
+  const catLabelMap = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c.label])), [categories]);
+
+  useEffect(()=>{
+    if(hasDesktop){
+      window.scrapAPI.dataDir().then(setDataDir).catch(()=>{});
+      window.scrapAPI.netInfo().then(setLanInfo).catch(()=>{});
+    }
+  },[]);
+
+  // ซิงก์ข้อมูลแบบเรียลไทม์กับอุปกรณ์อื่นบนวง WiFi เดียวกัน ผ่านเซิร์ฟเวอร์ที่ฝังอยู่ในโปรแกรม
+  useEffect(()=>{
+    if(!(location.protocol==="http:" || location.protocol==="https:")){ setNetStatus("offline"); return; }
+    let alive = true; let retryTimer;
+    function connect(){
+      let socket;
+      try{ socket = new WebSocket(`ws://${location.host}/ws`); }
+      catch(e){ if(alive) setNetStatus("offline"); return; }
+      wsRef.current = socket;
+      socket.onopen = ()=>{ if(alive) setNetStatus("online"); };
+      socket.onmessage = (ev)=>{
+        if(!alive) return;
+        try{
+          const msg = JSON.parse(ev.data);
+          if(msg.type==="state"){
+            setCustomers(msg.customers||[]);
+            setCatalog(migrateCatalog(msg.catalog && msg.catalog.length ? msg.catalog : DEFAULT_CATALOG));
+            setCategories(msg.categories && msg.categories.length ? msg.categories : DEFAULT_CATEGORIES);
+            setBills(msg.bills||[]);
+            setExtraIncome(msg.extraIncome||[]);
+            setEmployees(msg.employees||[]);
+            setAdvances(msg.advances||[]);
+            if(msg.settings) setSettings(s=>({...DEFAULT_SETTINGS, ...s, ...msg.settings}));
+          }
+        }catch(e){}
+      };
+      socket.onclose = ()=>{
+        if(!alive) return;
+        setNetStatus("offline");
+        retryTimer = setTimeout(connect, 2000);
+      };
+      socket.onerror = ()=>{ socket.close(); };
+    }
+    connect();
+    return ()=>{ alive=false; clearTimeout(retryTimer); if(wsRef.current) wsRef.current.close(); };
+  },[]);
+
+  function wsSend(msg){
+    const s = wsRef.current;
+    if(s && s.readyState===1){ s.send(JSON.stringify(msg)); return true; }
+    return false;
+  }
+
+  // ราคาโหมด: สลับอัตโนมัติตามลูกค้าที่เลือก (สมาชิก = ประจำ, ไม่เลือก = จร) แต่ปรับมือได้ภายหลัง
+  useEffect(()=>{
+    setPriceMode(selectedCustomerId ? "regular" : "casual");
+  },[selectedCustomerId]);
+
+  // เครื่องอ่านบัตรประชาชน: เสียบบัตรแล้วถ้าเป็นสมาชิกเดิม จะเลือกให้อัตโนมัติ
+  // ถ้ายังไม่เคยเป็นสมาชิก จะเปิดฟอร์มเพิ่มสมาชิกใหม่พร้อมกรอกข้อมูล/รูปจากบัตรให้
+  useEffect(()=>{
+    if(!hasDesktop || !window.scrapAPI.onCardReaderEvent) return;
+    const unsubscribe = window.scrapAPI.onCardReaderEvent((msg)=>{
+      if(msg.type!=="card_data" || !msg.data) return;
+      const cid = (msg.data.cid||"").trim();
+      if(!cid) return;
+      const cardInfo = {
+        englishName: msg.data.englishName || "",
+        birthDateIso: msg.data.birthDateIso || "",
+        gender: msg.data.gender || "",
+        address: msg.data.address || "",
+        issueDateIso: msg.data.issueDateIso || "",
+        expireDateIso: msg.data.expireDateIso || "",
+      };
+      const newPhoto = msg.data.photoBase64Jpeg ? `data:image/jpeg;base64,${msg.data.photoBase64Jpeg}` : "";
+      const existing = customers.find(c=>c.idCard===cid);
+      if(existing){
+        setSelectedCustomerId(existing.id);
+        const changed = (newPhoto && newPhoto!==existing.photo) || JSON.stringify(cardInfo)!==JSON.stringify(existing.cardInfo||{});
+        if(changed){
+          const updated = {...existing, photo:newPhoto||existing.photo, idVerified:true, cardInfo};
+          setCustomers(list=>list.map(c=>c.id===existing.id?updated:c));
+          wsSend({type:"addCustomer", customer:updated});
+        }
+        push(`ตรวจพบบัตรประชาชน — เลือกสมาชิก "${existing.name}" ให้อัตโนมัติ`,"ok");
+      } else {
+        setCardPrefill({
+          name: msg.data.thaiName || "",
+          idCard: cid,
+          photo: newPhoto,
+          cardInfo,
+        });
+        setShowAddCustomer(true);
+        push("ตรวจพบบัตรประชาชนใบใหม่ — กรอกเบอร์โทรแล้วบันทึกเป็นสมาชิกได้เลย","ok");
+      }
+    });
+    return unsubscribe;
+  },[customers]);
+
+  const selectedCustomer = customers.find(c=>c.id===selectedCustomerId) || null;
+  const activeItem = catalog.find(i=>i.id===activeItemId) || null;
+
+  const visibleItems = useMemo(()=>{
+    const q = itemSearch.trim().toLowerCase();
+    if(q){
+      return catalog.filter(i => i.name.toLowerCase().includes(q) || (i.code||"").toLowerCase().includes(q));
+    }
+    return selectedCategory==="all" ? catalog : catalog.filter(i=>i.category===selectedCategory);
+  },[catalog, selectedCategory, itemSearch]);
+  const quickItems = useMemo(()=>catalog.filter(i=>i.quick),[catalog]);
+
+  const searchResults = useMemo(()=>{
+    const q = search.trim().toLowerCase();
+    if(!q) return [];
+    return customers.filter(c=> c.name.toLowerCase().includes(q) || c.phone.includes(q)
+      || (c.nickname||"").toLowerCase().includes(q) || (c.licensePlate||"").toLowerCase().includes(q)).slice(0,8);
+  },[search, customers]);
+
+  function pickItem(item){
+    setEditingId(null);
+    setActiveItemId(item.id);
+    setPriceOverride(String(priceOf(item, priceMode)));
+    setGross(""); setTare("0"); setDeductPct("0"); setQty("");
+  }
+
+  const netWeight = useMemo(()=>{
+    if(!activeItem || activeItem.mode!=="weight") return 0;
+    const g = parseFloat(gross)||0, t = parseFloat(tare)||0, d = parseFloat(deductPct)||0;
+    let n = Math.max(0, g - t);
+    n = n * (1 - Math.min(100,Math.max(0,d))/100);
+    return Math.max(0, n);
+  },[activeItem, gross, tare, deductPct]);
+
+  const lineAmount = useMemo(()=>{
+    if(!activeItem) return 0;
+    const p = parseFloat(priceOverride)||0;
+    if(activeItem.mode==="weight") return netWeight*p;
+    return (parseFloat(qty)||0)*p;
+  },[activeItem, priceOverride, netWeight, qty]);
+
+  function resetWeighForm(){
+    setEditingId(null); setActiveItemId(null);
+    setGross(""); setTare("0"); setDeductPct("0"); setQty(""); setPriceOverride("");
+  }
+
+  function addLine(){
+    if(!activeItem) return;
+    const p = parseFloat(priceOverride)||0;
+    let newLine;
+    if(activeItem.mode==="weight"){
+      if(netWeight<=0){ push("กรอกน้ำหนักให้ถูกต้องก่อนเพิ่มรายการ","err"); return; }
+      newLine = {
+        id: editingId || uid(), itemId:activeItem.id, name:activeItem.name, category:activeItem.category,
+        mode:"weight", unit:activeItem.unit, gross:parseFloat(gross)||0, tare:parseFloat(tare)||0,
+        deductPct:parseFloat(deductPct)||0, net:netWeight, price:p, amount:netWeight*p, priceMode,
+      };
+    } else {
+      const q = parseFloat(qty)||0;
+      if(q<=0){ push("กรอกจำนวนให้ถูกต้องก่อนเพิ่มรายการ","err"); return; }
+      newLine = {
+        id: editingId || uid(), itemId:activeItem.id, name:activeItem.name, category:activeItem.category,
+        mode:"unit", unit:activeItem.unit, qty:q, price:p, amount:q*p, priceMode,
+      };
+    }
+    if(editingId){
+      setBillItems(list=>list.map(l=> l.id===editingId ? newLine : l));
+      push("บันทึกการแก้ไขรอบนี้แล้ว","ok");
+    } else {
+      setBillItems(list=>[...list, newLine]);
+    }
+    resetWeighForm();
+  }
+
+  // แก้ไขแบบไม่ทำลายข้อมูล: ยังไม่ลบรายการเดิมออกจนกว่าจะกด "บันทึกการแก้ไข" —
+  // กันข้อมูลหายถ้าเผลอกดแก้ไขรอบอื่นก่อนบันทึกรอบที่กำลังแก้อยู่
+  function editLine(line){
+    setEditingId(line.id);
+    setActiveItemId(line.itemId);
+    setPriceOverride(String(line.price));
+    if(line.mode==="weight"){ setGross(String(line.gross)); setTare(String(line.tare)); setDeductPct(String(line.deductPct)); setQty(""); }
+    else { setQty(String(line.qty)); setGross(""); setTare("0"); setDeductPct("0"); }
+  }
+  function removeLine(id){
+    setBillItems(list=>list.filter(l=>l.id!==id));
+    if(editingId===id) resetWeighForm();
+  }
+
+  const totals = useMemo(()=>{
+    let weight=0, amount=0;
+    billItems.forEach(l=>{ if(l.mode==="weight") weight+=l.net; amount+=l.amount; });
+    return {weight, amount, count:billItems.length};
+  },[billItems]);
+
+  function clearBill(){
+    if(billItems.length===0) return;
+    if(!window.confirm("ล้างรายการที่กำลังชั่งทั้งหมดใช่หรือไม่?")) return;
+    setBillItems([]); setActiveItemId(null);
+  }
+
+  // พักบิล: เก็บรายการที่กำลังชั่งของลูกค้าคนปัจจุบันไว้ก่อน แล้วเปิดบิลว่างให้ลูกค้าคนถัดไป
+  // โดยไม่ทำรายการที่ชั่งค้างไว้หาย — กดดึงกลับมาทำต่อได้ภายหลัง
+  function parkBill(){
+    if(billItems.length===0){ push("ยังไม่มีรายการที่จะพักบิล","err"); return; }
+    const held = {
+      id: uid(),
+      customerId: selectedCustomerId,
+      customerName: selectedCustomer ? selectedCustomer.name : "ลูกค้าทั่วไป",
+      walkInNickname: selectedCustomer ? "" : walkInNickname,
+      walkInLicensePlate: selectedCustomer ? "" : walkInLicensePlate,
+      items: billItems,
+      priceMode,
+      createdAt: new Date().toISOString(),
+    };
+    setHeldBills(list=>[...list, held]);
+    setBillItems([]);
+    setSelectedCustomerId(null);
+    setActiveItemId(null);
+    setWalkInNickname("");
+    setWalkInLicensePlate("");
+    resetWeighForm();
+    push(`พักบิลของ "${held.customerName}" ไว้แล้ว (${held.items.length} รายการ)`,"ok");
+  }
+
+  function resumeHeldBill(id){
+    const held = heldBills.find(h=>h.id===id);
+    if(!held) return;
+    if(billItems.length>0){
+      if(!window.confirm("มีรายการที่กำลังชั่งอยู่ตอนนี้ — ต้องการพักบิลปัจจุบันไว้ก่อน แล้วดึงบิลที่เลือกมาแทนใช่หรือไม่?")) return;
+      const currentHeld = {
+        id: uid(),
+        customerId: selectedCustomerId,
+        customerName: selectedCustomer ? selectedCustomer.name : "ลูกค้าทั่วไป",
+        walkInNickname: selectedCustomer ? "" : walkInNickname,
+        walkInLicensePlate: selectedCustomer ? "" : walkInLicensePlate,
+        items: billItems,
+        priceMode,
+        createdAt: new Date().toISOString(),
+      };
+      setHeldBills(list=>[...list.filter(h=>h.id!==id), currentHeld]);
+    } else {
+      setHeldBills(list=>list.filter(h=>h.id!==id));
+    }
+    setBillItems(held.items);
+    setSelectedCustomerId(held.customerId);
+    setPriceMode(held.priceMode || "casual");
+    setActiveItemId(null);
+    setWalkInNickname(held.walkInNickname || "");
+    setWalkInLicensePlate(held.walkInLicensePlate || "");
+    resetWeighForm();
+    push(`ดึงบิลของ "${held.customerName}" กลับมาทำต่อแล้ว`,"ok");
+  }
+
+  function deleteHeldBill(id){
+    const held = heldBills.find(h=>h.id===id);
+    if(!held) return;
+    if(!window.confirm(`ยกเลิกบิลที่พักไว้ของ "${held.customerName}" ใช่หรือไม่? (${held.items.length} รายการจะหายไป)`)) return;
+    setHeldBills(list=>list.filter(h=>h.id!==id));
+    push("ยกเลิกบิลที่พักไว้แล้ว","ok");
+  }
+
+  function finishSale(){
+    if(billItems.length===0){ push("ยังไม่มีรายการชั่งในบิลนี้","err"); return; }
+    const bill = {
+      id: uid(),
+      no: bills.length+1,
+      date: new Date().toISOString(),
+      customerId: selectedCustomer ? selectedCustomer.id : null,
+      customerName: selectedCustomer ? selectedCustomer.name : "ลูกค้าทั่วไป",
+      customerPhone: selectedCustomer ? selectedCustomer.phone : "",
+      customerType: selectedCustomer ? selectedCustomer.type : null,
+      customerNickname: selectedCustomer ? (selectedCustomer.nickname||"") : walkInNickname.trim(),
+      customerLicensePlate: selectedCustomer ? (selectedCustomer.licensePlate||"") : walkInLicensePlate.trim(),
+      items: billItems,
+    };
+    setBills(list=>[...list, bill]);
+    wsSend({type:"addBill", bill});
+    setLastBill(bill);
+    setReceiptPrintWidthMm(70);
+    setReceiptFontScale(0.8);
+    setShowReceipt(true);
+    setBillItems([]);
+    setActiveItemId(null);
+    setWalkInNickname("");
+    setWalkInLicensePlate("");
+    push(`บันทึกบิล #${bill.no} เรียบร้อย — ${money(billStats(bill).amount)} บาท`,"ok");
+  }
+
+  function reprintBill(bill){
+    setLastBill(bill);
+    setReceiptPrintWidthMm(97);
+    setReceiptFontScale(1.0816);
+    setShowReceipt(true);
+  }
+
+  function addCustomer(data){
+    const c = {
+      id:uid(), name:data.name.trim(), nickname:(data.nickname||"").trim(), licensePlate:(data.licensePlate||"").trim(),
+      phone:data.phone.trim(), type:data.type,
+      idCard:data.idCard||"", idVerified:!!data.idVerified, photo:data.photo||"",
+      cardInfo:data.cardInfo||null, createdAt:new Date().toISOString(),
+    };
+    setCustomers(list=>[c,...list]);
+    wsSend({type:"addCustomer", customer:c});
+    setSelectedCustomerId(c.id);
+    setSearch("");
+    setShowAddCustomer(false);
+    setCardPrefill(null);
+    push(`เพิ่มสมาชิก "${c.name}" เรียบร้อย${data.idVerified?" · ยืนยันตัวตนด้วยบัตรประชาชนแล้ว":""}`,"ok");
+  }
+
+  function updateCustomer(id, data){
+    setCustomers(list=>{
+      const next = list.map(c=>c.id===id ? {
+        ...c, name:data.name.trim(), nickname:(data.nickname||"").trim(), licensePlate:(data.licensePlate||"").trim(),
+        phone:data.phone.trim(), type:data.type,
+        idCard:data.idCard||"", idVerified:!!data.idVerified, photo:data.photo||c.photo,
+        cardInfo:data.cardInfo||c.cardInfo||null,
+      } : c);
+      const updated = next.find(c=>c.id===id);
+      if(updated) wsSend({type:"addCustomer", customer:updated});
+      return next;
+    });
+    push("บันทึกการแก้ไขสมาชิกแล้ว","ok");
+  }
+
+  function deleteCustomer(id){
+    const target = customers.find(c=>c.id===id);
+    setCustomers(list=>list.filter(c=>c.id!==id));
+    wsSend({type:"deleteCustomer", id});
+    if(selectedCustomerId===id) setSelectedCustomerId(null);
+    push(`ลบสมาชิก "${target?target.name:""}" แล้ว`,"ok");
+  }
+
+  function updateCatalogPrice(id, field, value){
+    setCatalog(list=>list.map(i=>{
+      if(i.id!==id) return i;
+      const updated = {...i, [field]:Math.max(0, value)};
+      wsSend({type:"updateCatalogItem", item:updated});
+      return updated;
+    }));
+  }
+  function toggleQuick(id){
+    setCatalog(list=>list.map(i=>{
+      if(i.id!==id) return i;
+      const updated = {...i, quick:!i.quick};
+      wsSend({type:"updateCatalogItem", item:updated});
+      return updated;
+    }));
+  }
+  function addCatalogItem(data){
+    const item = {
+      id:uid(), code:(data.code||"").trim(), category:data.category, name:data.name.trim(), unit:data.unit, mode:data.mode,
+      priceRegular:data.priceRegular, priceCasual:data.priceCasual, quick:false,
+    };
+    setCatalog(list=>[...list, item]);
+    wsSend({type:"updateCatalogItem", item});
+    push(`เพิ่มสินค้า "${data.name}" ในแคตตาล็อกแล้ว`,"ok");
+  }
+  function renameCatalogItem(id, name){
+    setCatalog(list=>list.map(i=>{
+      if(i.id!==id) return i;
+      const updated = {...i, name};
+      wsSend({type:"updateCatalogItem", item:updated});
+      return updated;
+    }));
+  }
+  function updateCatalogText(id, field, value){
+    setCatalog(list=>list.map(i=>{
+      if(i.id!==id) return i;
+      const updated = {...i, [field]:value};
+      wsSend({type:"updateCatalogItem", item:updated});
+      return updated;
+    }));
+  }
+  function deleteCatalogItem(id){
+    const item = catalog.find(i=>i.id===id);
+    if(!item) return;
+    if(!window.confirm(`ลบสินค้า "${item.name}" ออกจากแคตตาล็อกใช่หรือไม่?`)) return;
+    setCatalog(list=>list.filter(i=>i.id!==id));
+    wsSend({type:"deleteCatalogItem", id});
+    push(`ลบสินค้า "${item.name}" แล้ว`,"ok");
+  }
+  function deleteBill(id){
+    const bill = bills.find(b=>b.id===id);
+    if(!bill) return;
+    if(!window.confirm(`ยกเลิกบิล #${bill.no} ใช่หรือไม่? การลบนี้ย้อนกลับไม่ได้`)) return;
+    setBills(list=>list.filter(b=>b.id!==id));
+    wsSend({type:"deleteBill", id});
+    push(`ยกเลิกบิล #${bill.no} แล้ว`,"ok");
+  }
+
+  // แก้ไขบิลที่บันทึกไปแล้ว (เช่น กรอกน้ำหนัก/ราคาผิด) — แก้ได้เฉพาะรายการสินค้าในบิล
+  // ลูกค้า/วันที่เดิมคงไว้ตามเดิม เพื่อไม่ให้กระทบประวัติ/สถิติของสมาชิกผิดเพี้ยน
+  function updateBill(id, newItems){
+    setBills(list=>{
+      const next = list.map(b=>b.id===id ? {...b, items:newItems} : b);
+      const updated = next.find(b=>b.id===id);
+      if(updated) wsSend({type:"addBill", bill:updated});
+      return next;
+    });
+    setEditingBill(null);
+    push("บันทึกการแก้ไขบิลแล้ว","ok");
+  }
+  function updateSettings(patch){
+    setSettings(s=>{
+      const updated = {...s, ...patch};
+      wsSend({type:"updateSettings", settings:updated});
+      return updated;
+    });
+  }
+
+  function addCategory(name){
+    const label = name.trim();
+    if(!label) return;
+    const cat = { id:uid(), label, icon:"layers" };
+    setCategories(list=>[...list, cat]);
+    wsSend({type:"updateCategory", category:cat});
+    push(`เพิ่มหมวดหมู่ "${label}" แล้ว`,"ok");
+  }
+  function renameCategory(id, label){
+    setCategories(list=>list.map(c=>{
+      if(c.id!==id) return c;
+      const updated = {...c, label};
+      wsSend({type:"updateCategory", category:updated});
+      return updated;
+    }));
+  }
+  function deleteCategory(id){
+    const cat = categories.find(c=>c.id===id);
+    if(!cat) return;
+    const inUse = catalog.some(i=>i.category===id);
+    if(inUse){ push(`ลบไม่ได้ — ยังมีสินค้าอยู่ในหมวด "${cat.label}"`,"err"); return; }
+    if(!window.confirm(`ลบหมวดหมู่ "${cat.label}" ใช่หรือไม่?`)) return;
+    setCategories(list=>list.filter(c=>c.id!==id));
+    wsSend({type:"deleteCategory", id});
+    push(`ลบหมวดหมู่ "${cat.label}" แล้ว`,"ok");
+  }
+
+  // บันทึกรายรับเสริม 1 บิล อาจมีได้หลายรายการ (เช่น ขายขวดน้ำ + ถุงพลาสติก ในบิลเดียวกัน)
+  function addIncome(data){
+    const lineItems = data.items.map(it=>({ id:uid(), description:it.description.trim(), amount:it.amount }));
+    const amount = lineItems.reduce((s,it)=>s+it.amount,0);
+    const item = { id:uid(), no: extraIncome.length+1, date:data.date, items:lineItems, amount, createdAt:new Date().toISOString() };
+    setExtraIncome(list=>[item, ...list]);
+    wsSend({type:"addIncome", item});
+    push(`บันทึกรายรับ ${lineItems.length} รายการ (${money(amount)} ฿) แล้ว`,"ok");
+  }
+  function deleteIncome(id){
+    if(!window.confirm("ลบรายการรายรับนี้ใช่หรือไม่?")) return;
+    setExtraIncome(list=>list.filter(i=>i.id!==id));
+    wsSend({type:"deleteIncome", id});
+  }
+
+  // ออกใบเสร็จให้รายการรายรับเสริม (เช่น ขายขวดน้ำ/เศษของเหลือ) — ใช้ ReceiptModal ตัวเดียวกับ
+  // ใบเสร็จซื้อของเก่า โดยสร้าง "บิล" จำลองที่มีรายการย่อยตามที่บันทึกไว้ (รองรับหลายรายการในบิลเดียว)
+  // รองรับข้อมูลเก่าที่ยังเป็นแบบ description/amount เดี่ยว (ก่อนมีฟีเจอร์หลายรายการ) ด้วย
+  function issueIncomeReceipt(item){
+    const lineItems = item.items || [{ id:item.id, description:item.description, amount:item.amount }];
+    const bill = {
+      id: item.id,
+      no: item.no || "-",
+      date: item.createdAt,
+      customerId: null,
+      customerName: "ลูกค้าทั่วไป",
+      customerPhone: "",
+      customerType: null,
+      items: lineItems.map(li => ({
+        id: li.id, itemId: li.id, name: li.description, category: null,
+        mode: "unit", unit: "รายการ", qty: 1, price: li.amount, priceMode: "regular", amount: li.amount,
+      })),
+    };
+    setLastBill(bill);
+    setReceiptPrintWidthMm(70);
+    setReceiptFontScale(0.8);
+    setShowReceipt(true);
+  }
+
+  function addEmployee(data){
+    const emp = { id:uid(), name:data.name.trim(), position:data.position.trim(), monthlySalary:data.monthlySalary, createdAt:new Date().toISOString() };
+    setEmployees(list=>[...list, emp]);
+    wsSend({type:"updateEmployee", employee:emp});
+    push(`เพิ่มพนักงาน "${emp.name}" แล้ว`,"ok");
+  }
+  function updateEmployee(id, patch){
+    setEmployees(list=>list.map(e=>{
+      if(e.id!==id) return e;
+      const updated = {...e, ...patch};
+      wsSend({type:"updateEmployee", employee:updated});
+      return updated;
+    }));
+  }
+  function deleteEmployee(id){
+    const emp = employees.find(e=>e.id===id);
+    if(!emp) return;
+    if(!window.confirm(`ลบพนักงาน "${emp.name}" ใช่หรือไม่? (ประวัติเบิกเงินเดิมจะยังอยู่)`)) return;
+    setEmployees(list=>list.filter(e=>e.id!==id));
+    wsSend({type:"deleteEmployee", id});
+    push(`ลบพนักงาน "${emp.name}" แล้ว`,"ok");
+  }
+
+  function addAdvance(data){
+    const emp = employees.find(e=>e.id===data.employeeId);
+    const item = {
+      id:uid(), employeeId:data.employeeId, employeeName: emp ? emp.name : "ไม่ทราบชื่อ",
+      date:data.date, amount:data.amount, note:data.note.trim(), createdAt:new Date().toISOString(),
+    };
+    setAdvances(list=>[item, ...list]);
+    wsSend({type:"addAdvance", item});
+    push(`บันทึกเบิกเงิน ${money(item.amount)} ฿ ให้ "${item.employeeName}" แล้ว`,"ok");
+  }
+  function deleteAdvance(id){
+    if(!window.confirm("ลบรายการเบิกเงินนี้ใช่หรือไม่?")) return;
+    setAdvances(list=>list.filter(a=>a.id!==id));
+    wsSend({type:"deleteAdvance", id});
+  }
+  function updateAdvance(id, patch){
+    setAdvances(list=>{
+      const next = list.map(a=>a.id===id ? {...a, ...patch} : a);
+      const updated = next.find(a=>a.id===id);
+      if(updated) wsSend({type:"addAdvance", item:updated});
+      return next;
+    });
+  }
+
+  async function exportCSV(scope){
+    const targetBills = scope==="today" ? bills.filter(b=>b.date.slice(0,10)===todayKey()) : bills;
+    if(targetBills.length===0){ push(scope==="today" ? "ยังไม่มีบิลของวันนี้ให้ส่งออก" : "ยังไม่มีประวัติบิลให้ส่งออก","err"); return; }
+    const rows = [["เลขที่บิล","วันที่เวลา","ลูกค้า","ประเภทลูกค้า","สินค้า","น้ำหนัก/จำนวน","หน่วย","ประเภทราคา","ราคาต่อหน่วย","จำนวนเงิน(บาท)"]];
+    targetBills.forEach(b=>{
+      b.items.forEach(it=>{
+        rows.push([
+          b.no, fmtDateTime(b.date), b.customerName, b.customerType?typeMeta(b.customerType).label:"ทั่วไป",
+          it.name, it.mode==="weight"?it.net.toFixed(2):it.qty, it.unit,
+          it.priceMode==="regular"?"ประจำ":"จร", it.price.toFixed(2), it.amount.toFixed(2)
+        ]);
+      });
+    });
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\r\n");
+    const filename = scope==="today" ? `ประวัติรับซื้อ_${todayKey()}.csv` : `ประวัติรับซื้อทั้งหมด_${todayKey()}.csv`;
+
+    if(hasDesktop){
+      try{
+        const res = await window.scrapAPI.exportCSV(filename, csv);
+        if(res.ok) push(`ส่งออกไฟล์เรียบร้อย: ${res.path}`,"ok");
+        else push("ยกเลิกการบันทึกไฟล์","err");
+      }catch(e){ push("ไม่สามารถส่งออกไฟล์ได้ในขณะนี้","err"); }
+    } else {
+      try{
+        const blob = new Blob(["﻿"+csv], {type:"text/csv;charset=utf-8;"});
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+        URL.revokeObjectURL(url);
+        push("ส่งออกไฟล์ CSV เรียบร้อย","ok");
+      }catch(e){ push("ไม่สามารถส่งออกไฟล์ได้ในขณะนี้","err"); }
+    }
+  }
+
+  return (
+    <div className="app-shell">
+      <div className="app-header">
+        <div className="topbar">
+          <div className="brand">
+            <div className="brand-mark"><Icon name="magnet" size={20}/></div>
+            <div>
+              <div className="brand-name">ระบบ POS ค้าของเก่า by.leolung</div>
+              <div className="brand-sub">{settings.storeName}</div>
+            </div>
+          </div>
+          <div className="topbar-spacer"/>
+          <NetBadge netStatus={netStatus} dataDir={dataDir}/>
+          {hasDesktop && (
+            <button className="btn btn-ghost btn-sm" onClick={()=>setShowConnect(true)}><Icon name="smartphone" size={15}/>เชื่อมต่ออุปกรณ์อื่น</button>
+          )}
+          <button className="btn btn-ghost btn-sm" onClick={()=>exportCSV("today")}><Icon name="download" size={15}/>CSV วันนี้</button>
+          <button className="btn btn-ghost btn-sm" onClick={()=>exportCSV("all")}><Icon name="download" size={15}/>CSV ทั้งหมด</button>
+          <Clock/>
+        </div>
+
+        <div className="page-nav">
+          {PAGES.map(p=>(
+            <button key={p.id} className={"page-tab "+(page===p.id?"active":"")} onClick={()=>setPage(p.id)}>
+              <Icon name={p.icon} size={17}/>{p.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {page==="pos" && (
+        <div className="frame">
+          <LeftPane
+            customers={customers} search={search} setSearch={setSearch} searchResults={searchResults}
+            selectedCustomer={selectedCustomer} setSelectedCustomerId={setSelectedCustomerId}
+            bills={bills} onAddCustomer={()=>setShowAddCustomer(true)}
+            selectedCategory={selectedCategory} setSelectedCategory={setSelectedCategory}
+            categories={categories}
+            onOpenSettings={()=>setPage("inventory")}
+            priceMode={priceMode} setPriceMode={setPriceMode}
+            walkInNickname={walkInNickname} setWalkInNickname={setWalkInNickname}
+            walkInLicensePlate={walkInLicensePlate} setWalkInLicensePlate={setWalkInLicensePlate}
+          />
+          <CenterPane
+            catalog={catalog} visibleItems={visibleItems} quickItems={quickItems}
+            itemSearch={itemSearch} setItemSearch={setItemSearch}
+            selectedCategory={selectedCategory} activeItem={activeItem} activeItemId={activeItemId} pickItem={pickItem}
+            gross={gross} setGross={setGross} tare={tare} setTare={setTare} deductPct={deductPct} setDeductPct={setDeductPct}
+            qty={qty} setQty={setQty} priceOverride={priceOverride} setPriceOverride={setPriceOverride}
+            netWeight={netWeight} lineAmount={lineAmount} addLine={addLine}
+            billItems={billItems} editLine={editLine} removeLine={removeLine} totals={totals}
+            priceMode={priceMode} editingId={editingId} onCancelEdit={resetWeighForm}
+            activeInputRef={activeInputRef} catLabelMap={catLabelMap}
+          />
+          <RightPane
+            totals={totals} selectedCustomer={selectedCustomer}
+            onFinish={finishSale} onClear={clearBill} bills={bills}
+            heldBills={heldBills} onPark={parkBill} onResumeHeldBill={resumeHeldBill} onDeleteHeldBill={deleteHeldBill}
+          />
+        </div>
+      )}
+
+      {page==="inventory" && (
+        <div className="page-body">
+          <InventoryPage catalog={catalog} categories={categories}
+            onUpdatePrice={updateCatalogPrice} onToggleQuick={toggleQuick}
+            onAddItem={addCatalogItem} onRename={renameCatalogItem} onDelete={deleteCatalogItem}
+            onUpdateCode={(id,code)=>updateCatalogText(id,"code",code)}
+            onAddCategory={addCategory} onRenameCategory={renameCategory} onDeleteCategory={deleteCategory}/>
+        </div>
+      )}
+
+      {page==="members" && (
+        <div className="page-body">
+          <MembersPage customers={customers} bills={bills} categories={categories}
+            onAddCustomer={addCustomer} onUpdateCustomer={updateCustomer} onDeleteCustomer={deleteCustomer}
+            onReprint={reprintBill} onEditBill={(b)=>setEditingBill(b)}/>
+        </div>
+      )}
+
+      {page==="history" && (
+        <div className="page-body">
+          <HistoryPage bills={bills} onDeleteBill={deleteBill} onReprint={reprintBill} onEditBill={(b)=>setEditingBill(b)}/>
+        </div>
+      )}
+
+      {page==="income" && (
+        <div className="page-body">
+          <IncomePage extraIncome={extraIncome} bills={bills} advances={advances}
+            onAddIncome={addIncome} onDeleteIncome={deleteIncome} onIssueReceipt={issueIncomeReceipt}/>
+        </div>
+      )}
+
+      {page==="payroll" && (
+        <div className="page-body">
+          <PayrollPage employees={employees} advances={advances} extraIncome={extraIncome} bills={bills}
+            onAddEmployee={addEmployee} onUpdateEmployee={updateEmployee} onDeleteEmployee={deleteEmployee}
+            onAddAdvance={addAdvance} onDeleteAdvance={deleteAdvance} onUpdateAdvance={updateAdvance}/>
+        </div>
+      )}
+
+      {page==="settings" && (
+        <div className="page-body">
+          <SettingsPage settings={settings} onUpdateSettings={updateSettings} dataDir={dataDir}
+            theme={theme} setTheme={setTheme} uiScale={uiScale} setUiScale={setUiScale}/>
+        </div>
+      )}
+
+      {showAddCustomer && <AddCustomerModal onClose={()=>{setShowAddCustomer(false); setCardPrefill(null);}} onSave={addCustomer} initialData={cardPrefill}/>}
+      {showReceipt && lastBill && <ReceiptModal bill={lastBill} storeName={settings.storeName} printWidthMm={receiptPrintWidthMm} fontScale={receiptFontScale} onClose={()=>setShowReceipt(false)}/>}
+      {editingBill && <BillEditModal bill={editingBill} catalog={catalog} onClose={()=>setEditingBill(null)} onSave={(items)=>updateBill(editingBill.id, items)}/>}
+      {showConnect && <ConnectModal lanInfo={lanInfo} onClose={()=>setShowConnect(false)}/>}
+
+      {updateInfo && (
+        <div className="update-banner">
+          <Icon name="download" size={16}/>
+          <span>ดาวน์โหลดอัปเดตเวอร์ชัน {updateInfo.version} เสร็จแล้ว — รีสตาร์ทเพื่อติดตั้งตอนนี้ได้เลย (ถ้าไม่กด จะติดตั้งให้อัตโนมัติตอนปิดโปรแกรมครั้งถัดไป)</span>
+          <button className="btn btn-primary btn-sm" onClick={()=>window.scrapAPI.installUpdate()}>รีสตาร์ทเพื่อติดตั้ง</button>
+          <button className="icon-btn" title="ปิด" onClick={()=>setUpdateInfo(null)}><Icon name="x" size={15}/></button>
+        </div>
+      )}
+
+      <div className="toast-wrap">
+        {toasts.map(t=>(
+          <div key={t.id} className={"toast "+t.type}>
+            <Icon name={t.type==="ok"?"check":"alert"} size={15}/>{t.message}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function Clock(){
+  const [now,setNow] = useState(new Date());
+  useEffect(()=>{ const t=setInterval(()=>setNow(new Date()),1000*20); return ()=>clearInterval(t); },[]);
+  return (
+    <div className="topbar-clock">
+      <div>{now.toLocaleDateString("th-TH",{weekday:"long",day:"numeric",month:"long",year:"numeric"})}</div>
+      <b>{now.toLocaleTimeString("th-TH",{hour:"2-digit",minute:"2-digit"})}</b>
+    </div>
+  );
+}
+
+function NetBadge({netStatus, dataDir}){
+  const online = netStatus==="online";
+  const label = online ? "ออนไลน์ · ซิงก์กับอุปกรณ์อื่น" : netStatus==="connecting" ? "กำลังเชื่อมต่อ..." : "ออฟไลน์ · เครื่องนี้เท่านั้น";
+  const title = hasDesktop
+    ? `${dataDir ? `บันทึกไฟล์ที่: ${dataDir}\n` : ""}${online ? "เชื่อมกับอุปกรณ์อื่นบนวง WiFi เดียวกันอยู่" : "ยังไม่เชื่อมต่อกับอุปกรณ์อื่น"}`
+    : (online ? "เชื่อมต่อกับคอมหลักอยู่ ข้อมูลซิงก์กันแบบเรียลไทม์" : "ขาดการเชื่อมต่อกับคอมหลัก — กำลังลองเชื่อมใหม่");
+  return (
+    <span className="sync-badge" title={title}>
+      <span className={"sync-dot "+(netStatus==="connecting"?"":online?"on":"off")}/>
+      <Icon name="hardDrive" size={12}/>
+      {label}
+    </span>
+  );
+}
+
+function ConnectModal({lanInfo, onClose}){
+  const [copied,setCopied] = useState(false);
+  const url = lanInfo && lanInfo.url;
+  function copyUrl(){
+    if(!url) return;
+    navigator.clipboard.writeText(url).then(()=>{ setCopied(true); setTimeout(()=>setCopied(false),1800); }).catch(()=>{});
+  }
+  return (
+    <ModalShell title="เชื่อมต่ออุปกรณ์อื่น" onClose={onClose} footer={<button className="btn btn-primary" onClick={onClose}>ปิด</button>}>
+      {url ? (
+        <>
+          <div className="field">
+            <label>เปิดลิงก์นี้บนมือถือหรือแท็บเล็ตที่เชื่อม WiFi วงเดียวกับคอมเครื่องนี้</label>
+            <div style={{display:"flex",gap:8}}>
+              <input className="input tabular" readOnly value={url} onFocus={e=>e.target.select()}/>
+              <button className="btn" onClick={copyUrl}>{copied?"คัดลอกแล้ว":"คัดลอก"}</button>
+            </div>
+          </div>
+          <div className="idcard-box">
+            <div className="idcard-status muted">
+              เปิดเบราว์เซอร์บนมือถือ (Safari / Chrome) แล้วพิมพ์ลิงก์ด้านบน หรือส่งลิงก์นี้ไปที่มือถือผ่าน LINE/ข้อความ
+              จากนั้นข้อมูลสมาชิก แคตตาล็อกราคา และบิลจะซิงก์กับเครื่องนี้แบบเรียลไทม์ทันทีที่เปิด
+            </div>
+            <div className="idcard-status ok"><Icon name="shieldCheck" size={14}/>ใช้งานได้เฉพาะอุปกรณ์ที่อยู่ใน WiFi วงเดียวกับร้านเท่านั้น</div>
+          </div>
+        </>
+      ) : (
+        <div className="idcard-status muted">ยังหาที่อยู่เครือข่ายของคอมเครื่องนี้ไม่พบ — ตรวจสอบว่าคอมเชื่อม WiFi หรือสาย LAN อยู่ แล้วลองเปิดหน้าต่างนี้ใหม่</div>
+      )}
+    </ModalShell>
+  );
+}
+
+/* ============================= LEFT PANE ============================= */
+function LeftPane({customers, search, setSearch, searchResults, selectedCustomer, setSelectedCustomerId,
+  bills, onAddCustomer, selectedCategory, setSelectedCategory, categories, onOpenSettings, priceMode, setPriceMode,
+  walkInNickname, setWalkInNickname, walkInLicensePlate, setWalkInLicensePlate}){
+
+  const stats = selectedCustomer ? customerStats(selectedCustomer.id, bills) : null;
+
+  return (
+    <div className="pane pane-left">
+      <div className="panel">
+        <div className="panel-title"><Icon name="user" size={13}/>สมาชิก</div>
+        <div className="input-wrap">
+          <span className="search-icon"><Icon name="search" size={15}/></span>
+          <input className="input input-search" placeholder="ค้นหาชื่อ หรือ เบอร์โทร..."
+            value={search} onChange={e=>setSearch(e.target.value)} />
+        </div>
+
+        {search.trim() && (
+          <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:2, maxHeight:180, overflowY:"auto"}}>
+            {searchResults.length===0 && <div style={{fontSize:12.5,color:"var(--ink-faint)",padding:"6px 2px"}}>ไม่พบลูกค้าที่ตรงกับ "{search}"</div>}
+            {searchResults.map(c=>(
+              <div key={c.id} className="cust-result" onClick={()=>{setSelectedCustomerId(c.id); setSearch("");}}>
+                <div>
+                  <div className="cust-result-name" style={{display:"flex",alignItems:"center",gap:5}}>
+                    {c.name}
+                    {c.idVerified && <span className="result-verified" title="ยืนยันตัวตนด้วยบัตรประชาชนแล้ว"><Icon name="shieldCheck" size={12}/></span>}
+                  </div>
+                  <div className="cust-result-meta">{c.phone}</div>
+                </div>
+                <span className={"badge "+typeMeta(c.type).badge}>{typeMeta(c.type).label}</span>
+              </div>
+            ))}
+          </div>
+        )}
+
+        <button className="btn btn-block" style={{marginTop:9}} onClick={onAddCustomer}>
+          <Icon name="userPlus" size={15}/>เพิ่มสมาชิกใหม่
+        </button>
+
+        <div style={{marginTop:10, display:"flex",flexDirection:"column",gap:6}}>
+          <div className={"walkin-chip "+(!selectedCustomer?"active":"")} onClick={()=>setSelectedCustomerId(null)}>
+            <Icon name="user" size={15}/> ลูกค้าทั่วไป (ไม่ระบุตัวตน)
+          </div>
+
+          {!selectedCustomer && (
+            <div style={{display:"flex",flexDirection:"column",gap:6,padding:"0 2px"}}>
+              <input className="input" style={{fontSize:12.5}} value={walkInNickname} onChange={e=>setWalkInNickname(e.target.value)}
+                placeholder="ชื่อเล่น (ไม่บังคับ, ไม่โชว์ในบิล)"/>
+              <input className="input tabular" style={{fontSize:12.5}} value={walkInLicensePlate} onChange={e=>setWalkInLicensePlate(e.target.value)}
+                placeholder="ทะเบียนรถ (ไม่บังคับ, ไม่โชว์ในบิล)"/>
+            </div>
+          )}
+
+          {selectedCustomer && (
+            <div className="active-customer-card">
+              <div className="ac-top">
+                {selectedCustomer.photo && <img src={selectedCustomer.photo} alt="" className="ac-photo"/>}
+                <div style={{flex:1}}>
+                  <div className="ac-name">{selectedCustomer.name}{selectedCustomer.nickname && <span style={{fontWeight:400,color:"var(--ink-muted)"}}> ({selectedCustomer.nickname})</span>}</div>
+                  <div className="ac-phone"><Icon name="phone" size={11}/>{selectedCustomer.phone}</div>
+                  {selectedCustomer.licensePlate && <div className="ac-phone">ทะเบียน {selectedCustomer.licensePlate}</div>}
+                </div>
+                <span className={"badge "+typeMeta(selectedCustomer.type).badge}>{typeMeta(selectedCustomer.type).label}</span>
+              </div>
+
+              <div style={{marginTop:9,fontSize:11.5,color:"var(--ink-muted)",display:"flex",justifyContent:"space-between"}}>
+                <span>ซื้อขายแล้ว {stats.visits} ครั้ง</span>
+                <span className="tabular">รวม {money(stats.spent)} ฿</span>
+              </div>
+
+              {selectedCustomer.idVerified && (
+                <div className="ac-verified">
+                  <Icon name="shieldCheck" size={13}/>ยืนยันตัวตนแล้ว · {maskThaiID(selectedCustomer.idCard)}
+                </div>
+              )}
+
+              {stats.bills.length>0 && (
+                <div style={{marginTop:6}}>
+                  {stats.bills.slice(0,4).map(b=>{
+                    const s = billStats(b);
+                    return (
+                      <div key={b.id} className="ac-hist-item">
+                        <span>{fmtDateTime(b.date)}</span>
+                        <b className="tabular">{money(s.amount)} ฿</b>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="scale" size={13}/>โหมดราคาที่ใช้ชั่ง</div>
+        <div className="mode-toggle">
+          {PRICE_MODES.map(m=>(
+            <button key={m.id} type="button" className={priceMode===m.id?"active":""} onClick={()=>setPriceMode(m.id)}>{m.label}</button>
+          ))}
+        </div>
+        <div className="mode-hint">
+          {selectedCustomer ? "ตั้งเป็นราคาประจำอัตโนมัติเมื่อเลือกสมาชิก — " : "ลูกค้าทั่วไปตั้งเป็นราคาจรอัตโนมัติ — "}
+          กดสลับได้ตลอดหากต้องการใช้ราคาอื่นสำหรับบิลนี้
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="package" size={13}/>หมวดหมู่สินค้า</div>
+        <div className="cat-grid">
+          <button className={"cat-btn cat-btn-all "+(selectedCategory==="all"?"active":"")} onClick={()=>setSelectedCategory("all")}>
+            <span className="cat-ico"><Icon name="package" size={16}/></span>ทั้งหมด
+          </button>
+          {categories.map(c=>(
+            <button key={c.id} className={"cat-btn "+(selectedCategory===c.id?"active":"")} onClick={()=>setSelectedCategory(c.id)}>
+              <span className="cat-ico"><Icon name={c.icon} size={16}/></span>{c.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <button className="btn btn-block" onClick={onOpenSettings}>
+        <Icon name="package" size={15}/>จัดการสินค้า →
+      </button>
+    </div>
+  );
+}
+
+/* ============================= CENTER PANE ============================= */
+function CenterPane({catalog, visibleItems, quickItems, itemSearch, setItemSearch, selectedCategory, activeItem, activeItemId, pickItem,
+  gross,setGross,tare,setTare,deductPct,setDeductPct,qty,setQty,priceOverride,setPriceOverride,
+  netWeight, lineAmount, addLine, billItems, editLine, removeLine, totals, priceMode, editingId, onCancelEdit, activeInputRef, catLabelMap}){
+
+  const onFocusTrack = (e)=>{ if(activeInputRef) activeInputRef.current = e.target; };
+  const onEnterSubmit = (e)=>{ if(e.key==="Enter"){ e.preventDefault(); addLine(); } };
+  const primaryFieldRef = useRef(null);
+  useEffect(()=>{
+    // autoFocus ไม่ยิง React onFocus เสมอไป จึงต้องผูก ref ตรงให้แป้นตัวเลขรู้ว่าช่องไหนกำลังใช้งาน
+    if(activeItem && primaryFieldRef.current && activeInputRef){
+      activeInputRef.current = primaryFieldRef.current;
+    }
+  },[activeItem]);
+
+  const [expanded, setExpanded] = useState({});
+  const toggleExpand = (itemId) => setExpanded(e=>({...e, [itemId]: !e[itemId]}));
+
+  const groups = useMemo(()=>{
+    const order = []; const map = new Map();
+    billItems.forEach(l=>{
+      if(!map.has(l.itemId)){ map.set(l.itemId, []); order.push(l.itemId); }
+      map.get(l.itemId).push(l);
+    });
+    return order.map(itemId=>{
+      const lines = map.get(itemId);
+      const first = lines[0];
+      const netSum = lines.reduce((s,l)=> s + (l.mode==="weight"?l.net:0), 0);
+      const qtySum = lines.reduce((s,l)=> s + (l.mode==="unit"?l.qty:0), 0);
+      const amountSum = lines.reduce((s,l)=>s+l.amount,0);
+      return { itemId, name:first.name, category:first.category, mode:first.mode, unit:first.unit, lines, netSum, qtySum, amountSum };
+    });
+  },[billItems]);
+
+  const sameItemLines = activeItem ? billItems.filter(l=>l.itemId===activeItem.id && l.id!==editingId) : [];
+  const existingNet = sameItemLines.reduce((s,l)=> s + (l.mode==="weight"?l.net:0), 0);
+  const existingQty = sameItemLines.reduce((s,l)=> s + (l.mode==="unit"?l.qty:0), 0);
+  const existingAmount = sameItemLines.reduce((s,l)=>s+l.amount,0);
+
+  const searching = itemSearch.trim().length>0;
+
+  return (
+    <div className="pane">
+      <div className="panel">
+        <div className="input-wrap">
+          <span className="search-icon"><Icon name="search" size={15}/></span>
+          <input className="input input-search" placeholder="ค้นหาสินค้า ด้วยชื่อ หรือ รหัสสินค้า..."
+            value={itemSearch} onChange={e=>setItemSearch(e.target.value)} />
+          {searching && (
+            <button type="button" className="icon-btn search-clear" title="ล้างคำค้นหา" onClick={()=>setItemSearch("")}>
+              <Icon name="x" size={15}/>
+            </button>
+          )}
+        </div>
+      </div>
+
+      {!searching && quickItems.length>0 && (
+        <div className="panel">
+          <div className="panel-title"><Icon name="star" size={13}/>ปุ่มลัด — สินค้าที่เข้าบ่อย</div>
+          <div className="item-grid">
+            {quickItems.map(it=>(
+              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} />
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="panel">
+        <div className="panel-title">
+          <Icon name={searching?"search":"package"} size={13}/>
+          {searching ? `ผลการค้นหา "${itemSearch.trim()}"` : (selectedCategory==="all" ? "สินค้าทั้งหมด" : catLabelMap[selectedCategory])}
+        </div>
+        {visibleItems.length===0 ? (
+          <div style={{fontSize:12.5,color:"var(--ink-faint)",padding:"10px 2px"}}>
+            {searching ? `ไม่พบสินค้าที่ตรงกับ "${itemSearch.trim()}"` : "ไม่มีสินค้าในหมวดนี้"}
+          </div>
+        ) : (
+          <div className="item-grid">
+            {visibleItems.map(it=>(
+              <ItemCard key={it.id} item={it} priceMode={priceMode} active={it.id===activeItemId} onPick={()=>pickItem(it)} />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {activeItem && (
+        <div className="panel" style={editingId ? {borderColor:"var(--accent)"} : undefined}>
+          <div className="weigh-head">
+            <div>
+              <div className="weigh-item-name">
+                {editingId && <span className="round-badge" style={{marginRight:7}}>กำลังแก้ไข</span>}
+                {activeItem.name}
+              </div>
+              <div className="weigh-item-cat">{catLabelMap[activeItem.category]} · หน่วย {activeItem.unit} · ใช้{priceMode==="regular"?"ราคาประจำ":"ราคาจร"}</div>
+            </div>
+          </div>
+
+          {sameItemLines.length>0 && (
+            <div className="repeat-warn">
+              <Icon name="alert" size={14}/>
+              <span>
+                สินค้านี้ถูกชั่งไปแล้ว <b>{sameItemLines.length} รอบ</b> ในบิลนี้ — รวม{" "}
+                <b>{activeItem.mode==="weight" ? `${kg(existingNet)} กก.` : `${existingQty} ${activeItem.unit}`}</b>
+                {" "}({money(existingAmount)} ฿). ตรวจสอบก่อนเพิ่มรอบใหม่ กันชั่งซ้ำโดยไม่ตั้งใจ
+              </span>
+            </div>
+          )}
+
+          <div style={{display:"flex", gap:14, marginTop:10, flexWrap:"wrap", alignItems:"flex-start"}}>
+            <div style={{flex:"2 1 340px"}}>
+              {activeItem.mode==="weight" ? (
+                <div className="weigh-grid" style={{marginTop:0}}>
+                  <div className="field">
+                    <label>น้ำหนักรวม (Gross) กก.</label>
+                    <input ref={primaryFieldRef} className="input tabular" type="text" inputMode="decimal" autoFocus value={gross}
+                      onChange={e=>setGross(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit} placeholder="0.00"/>
+                  </div>
+                  <div className="field">
+                    <label>หักภาชนะ (Tare) กก.</label>
+                    <input className="input tabular" type="text" inputMode="decimal" value={tare}
+                      onChange={e=>setTare(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit}/>
+                  </div>
+                  <div className="field">
+                    <label>หักสิ่งเจือปน/ความชื้น %</label>
+                    <input className="input tabular" type="text" inputMode="decimal" value={deductPct}
+                      onChange={e=>setDeductPct(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit}/>
+                  </div>
+                  <div className="field">
+                    <label>ราคาต่อ กก. (บาท)</label>
+                    <input className="input tabular" type="text" inputMode="decimal" value={priceOverride}
+                      onChange={e=>setPriceOverride(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit}/>
+                  </div>
+                </div>
+              ) : (
+                <div className="weigh-grid" style={{marginTop:0}}>
+                  <div className="field">
+                    <label>จำนวน ({activeItem.unit})</label>
+                    <input ref={primaryFieldRef} className="input tabular" type="text" inputMode="decimal" autoFocus value={qty}
+                      onChange={e=>setQty(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit} placeholder="0"/>
+                  </div>
+                  <div className="field">
+                    <label>ราคาต่อ{activeItem.unit} (บาท)</label>
+                    <input className="input tabular" type="text" inputMode="decimal" value={priceOverride}
+                      onChange={e=>setPriceOverride(filterDecimalInput(e.target.value))} onFocus={onFocusTrack} onKeyDown={onEnterSubmit}/>
+                  </div>
+                </div>
+              )}
+            </div>
+            <div style={{flex:"1 1 190px", maxWidth:230}}>
+              <Numpad targetRef={activeInputRef} onSubmit={addLine} editingId={editingId}/>
+            </div>
+          </div>
+
+          <div className="weigh-net">
+            <div>
+              <div className="weigh-net-label">{activeItem.mode==="weight" ? "น้ำหนักสุทธิ (Net)" : "รวมจำนวน"}</div>
+              <div className="weigh-net-val tabular">
+                {activeItem.mode==="weight" ? `${kg(netWeight)} กก.` : `${qty||0} ${activeItem.unit}`}
+              </div>
+            </div>
+            <div style={{textAlign:"right"}}>
+              <div className="weigh-net-label">จำนวนเงิน</div>
+              <div className="weigh-amt-val tabular">{money(lineAmount)} ฿</div>
+            </div>
+          </div>
+
+          <div style={{display:"flex",gap:8,marginTop:10}}>
+            {editingId && (
+              <button className="btn" onClick={onCancelEdit}><Icon name="x" size={16}/>ยกเลิก</button>
+            )}
+            <button className="btn btn-primary btn-block" onClick={addLine}>
+              <Icon name={editingId?"check":"plus"} size={16}/>{editingId ? "บันทึกการแก้ไข" : "เพิ่มรายการลงบิล"}
+            </button>
+          </div>
+        </div>
+      )}
+
+      <div className="panel" style={{flex:1, display:"flex",flexDirection:"column",minHeight:220}}>
+        <div className="panel-title"><Icon name="scale" size={13}/>รายการที่ชั่งในบิลนี้ ({groups.length} ชนิด)</div>
+        <div className="bill-table-wrap" style={{flex:1}}>
+          {billItems.length===0 ? (
+            <div className="empty-bill">ยังไม่มีรายการ — เลือกสินค้าด้านบนเพื่อเริ่มชั่ง</div>
+          ) : (
+            <table className="bill-table">
+              <thead><tr>
+                <th>สินค้า</th><th>น้ำหนัก/จำนวน</th><th>ราคา/หน่วย</th><th>จำนวนเงิน</th><th></th>
+              </tr></thead>
+              <tbody>
+                {groups.map(g=>{
+                  const multi = g.lines.length>1;
+                  const isOpen = !!expanded[g.itemId];
+                  const denom = g.mode==="weight" ? g.netSum : g.qtySum;
+                  const avgPrice = denom>0 ? g.amountSum/denom : 0;
+                  return (
+                    <React.Fragment key={g.itemId}>
+                      <tr className={multi?"group-row":""} onClick={multi?()=>toggleExpand(g.itemId):undefined}>
+                        <td>
+                          {multi ? (
+                            <button type="button" className="group-name-btn" onClick={e=>{e.stopPropagation(); toggleExpand(g.itemId);}}>
+                              <Icon name="chevronRight" size={13} className={"group-chevron "+(isOpen?"open":"")}/>
+                              {g.name}
+                              <span className="round-badge">{g.lines.length} รอบ</span>
+                            </button>
+                          ) : <span className="item-name-ink">{g.name}</span>}
+                          <div style={{fontSize:10.5,color:"var(--ink-faint)", paddingLeft: multi?19:0}}>{catLabelMap[g.category]}</div>
+                        </td>
+                        <td className="tabular">{g.mode==="weight" ? `${kg(g.netSum)} กก.` : `${g.qtySum} ${g.unit}`}</td>
+                        <td className="tabular">
+                          {multi ? (
+                            <span title="ราคาเฉลี่ยถ่วงน้ำหนักของทุกรอบ">เฉลี่ย {money(avgPrice)}</span>
+                          ) : (
+                            <>{money(g.lines[0].price)}<div style={{fontSize:10,color:"var(--ink-faint)"}}>{g.lines[0].priceMode==="regular"?"ประจำ":"จร"}</div></>
+                          )}
+                        </td>
+                        <td className="tabular" style={{fontWeight:600}}>{money(g.amountSum)}</td>
+                        <td>
+                          {!multi && (
+                            <div className="row-actions">
+                              <button className="icon-btn" title="แก้ไข" onClick={()=>editLine(g.lines[0])}><Icon name="pencil" size={14}/></button>
+                              <button className="icon-btn" title="ลบ" onClick={()=>removeLine(g.lines[0].id)} style={{color:"var(--danger)"}}><Icon name="trash" size={14}/></button>
+                            </div>
+                          )}
+                        </td>
+                      </tr>
+                      {multi && isOpen && g.lines.map((l,idx)=>(
+                        <tr key={l.id} className={"sub-row"+(l.id===editingId?" editing":"")}>
+                          <td className="sub-label">
+                            รอบที่ {idx+1}{l.id===editingId && <span className="round-badge" style={{marginLeft:6}}>กำลังแก้ไข</span>}
+                          </td>
+                          <td className="tabular">{l.mode==="weight" ? `${kg(l.net)} กก.` : `${l.qty} ${l.unit}`}</td>
+                          <td className="tabular">{money(l.price)}<div style={{fontSize:10,color:"var(--ink-faint)"}}>{l.priceMode==="regular"?"ประจำ":"จร"}</div></td>
+                          <td className="tabular">{money(l.amount)}</td>
+                          <td>
+                            <div className="row-actions">
+                              <button className="icon-btn" title="แก้ไขรอบนี้" onClick={()=>editLine(l)}><Icon name="pencil" size={14}/></button>
+                              <button className="icon-btn" title="ลบรอบนี้" onClick={()=>removeLine(l.id)} style={{color:"var(--danger)"}}><Icon name="trash" size={14}/></button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+        {billItems.length>0 && (
+          <div style={{display:"flex",justifyContent:"space-between",fontSize:12.5,color:"var(--ink-muted)",marginTop:8,padding:"0 2px"}}>
+            <span>น้ำหนักรวม: <b className="tabular" style={{color:"var(--ink)"}}>{kg(totals.weight)} กก.</b></span>
+            <span>{groups.length} ชนิดสินค้า · {billItems.length} รอบชั่ง</span>
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+function ItemCard({item, priceMode, active, onPick}){
+  return (
+    <button type="button" className={"item-card "+(active?"selected":"")} onClick={onPick}>
+      {item.code && <span className="item-card-code tabular">{item.code}</span>}
+      <span className="item-card-name">{item.name}</span>
+      <span className="item-card-price tabular">{money(priceOf(item, priceMode))} <span className="unit">฿/{item.unit}</span></span>
+    </button>
+  );
+}
+
+/* ============================= NUMPAD ============================= */
+function Numpad({targetRef, onSubmit, editingId}){
+  function press(key){
+    const el = targetRef && targetRef.current;
+    if(!el){ return; }
+    let v = el.value || "";
+    if(key==="C") v = "";
+    else if(key==="back") v = v.slice(0,-1);
+    else if(key===".") { if(!v.includes(".")) v += "."; }
+    else v += key;
+    setReactInputValue(el, v);
+    el.focus();
+  }
+  const keys = ["7","8","9","4","5","6","1","2","3",".","0","back"];
+  return (
+    <div className="numpad">
+      <div className="numpad-grid">
+        {keys.map(k=>(
+          <button key={k} type="button" className="numpad-btn"
+            onMouseDown={e=>e.preventDefault()} onClick={()=>press(k)}>
+            {k==="back" ? <Icon name="x" size={17}/> : k}
+          </button>
+        ))}
+      </div>
+      {onSubmit && (
+        <button type="button" className="btn btn-primary btn-block numpad-confirm"
+          onMouseDown={e=>e.preventDefault()} onClick={onSubmit}>
+          <Icon name={editingId?"check":"plus"} size={16}/>{editingId ? "บันทึกการแก้ไข" : "เพิ่มรายการลงบิล"}
+        </button>
+      )}
+      <button type="button" className="numpad-clear" onMouseDown={e=>e.preventDefault()} onClick={()=>press("C")}>ล้างค่า</button>
+    </div>
+  );
+}
+
+/* ============================= RIGHT PANE ============================= */
+function RightPane({totals, selectedCustomer, onFinish, onClear, bills, heldBills, onPark, onResumeHeldBill, onDeleteHeldBill}){
+  const todayBills = bills.filter(b=>b.date.slice(0,10)===todayKey());
+  const todayTotal = todayBills.reduce((s,b)=>s+billStats(b).amount,0);
+
+  return (
+    <div className="pane pane-right">
+      <div className="summary-total">
+        <div className="summary-total-label">ยอดเงินที่ต้องจ่ายลูกค้า</div>
+        <div className="summary-total-val tabular">{money(totals.amount)}</div>
+        <div className="summary-total-sub">
+          <span>น้ำหนักรวม <b className="tabular" style={{color:"var(--ink)"}}>{kg(totals.weight)} กก.</b></span>
+          <span>{totals.count} รายการ</span>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="summary-row">
+          <span style={{color:"var(--ink-muted)"}}>ลูกค้า</span>
+          <b>{selectedCustomer ? selectedCustomer.name : "ลูกค้าทั่วไป"}</b>
+        </div>
+      </div>
+
+      <div style={{display:"flex",flexDirection:"column",gap:8}}>
+        <button className="btn btn-money btn-block" style={{padding:"13px 12px",fontSize:15}} onClick={onFinish} disabled={totals.count===0}>
+          <Icon name="printer" size={17}/>จบการขาย / พิมพ์ใบเสร็จ
+        </button>
+        <button className="btn btn-ghost btn-block" onClick={onPark} disabled={totals.count===0}>
+          <Icon name="folder" size={15}/>พักบิล (ไปทำบิลอื่นก่อน)
+        </button>
+        <button className="btn btn-ghost btn-block" onClick={onClear} disabled={totals.count===0}>
+          <Icon name="broom" size={15}/>ล้างรายการปัจจุบัน
+        </button>
+      </div>
+
+      {heldBills.length>0 && (
+        <div className="panel">
+          <div className="panel-title"><Icon name="folder" size={13}/>บิลที่พักไว้ ({heldBills.length})</div>
+          <div style={{display:"flex",flexDirection:"column",gap:6}}>
+            {heldBills.map(h=>{
+              const s = billStats(h);
+              return (
+                <div key={h.id} className="held-bill-row" onClick={()=>onResumeHeldBill(h.id)}>
+                  <div style={{flex:1,minWidth:0}}>
+                    <div className="held-bill-name">{h.customerName}</div>
+                    <div className="held-bill-meta">{h.items.length} รายการ · {money(s.amount)} ฿</div>
+                  </div>
+                  <button className="icon-btn" title="ยกเลิกบิลนี้" style={{color:"var(--danger)"}}
+                    onClick={e=>{e.stopPropagation(); onDeleteHeldBill(h.id);}}>
+                    <Icon name="trash" size={15}/>
+                  </button>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="panel" style={{marginTop:"auto"}}>
+        <div className="panel-title"><Icon name="history" size={13}/>สรุปวันนี้</div>
+        <div className="summary-row"><span style={{color:"var(--ink-muted)"}}>จำนวนบิล</span><b className="tabular">{todayBills.length}</b></div>
+        <div className="summary-row"><span style={{color:"var(--ink-muted)"}}>ยอดซื้อรวม</span><b className="tabular" style={{color:"var(--money)"}}>{money(todayTotal)} ฿</b></div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================= MODALS ============================= */
+function ModalShell({title, onClose, children, wide, footer}){
+  return (
+    <div className="modal-backdrop" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className={"modal-card "+(wide?"wide":"")}>
+        <div className="modal-head">
+          <h3>{title}</h3>
+          <button className="icon-btn" onClick={onClose}><Icon name="x" size={17}/></button>
+        </div>
+        <div className="modal-body">{children}</div>
+        {footer && <div className="modal-foot">{footer}</div>}
+      </div>
+    </div>
+  );
+}
+
+function BillEditModal({bill, catalog, onClose, onSave}){
+  const [items,setItems] = useState(()=>bill.items.map(it=>({
+    ...it,
+    net: it.mode==="weight" ? String(it.net ?? 0) : undefined,
+    qty: it.mode==="unit" ? String(it.qty ?? 0) : undefined,
+    price: String(it.price ?? 0),
+  })));
+  const [addItemId,setAddItemId] = useState("");
+
+  function updateItemField(idx, field, value){
+    setItems(list=>list.map((it,i)=> i===idx ? {...it, [field]:filterDecimalInput(value)} : it));
+  }
+  function removeItem(idx){
+    setItems(list=>list.filter((_,i)=>i!==idx));
+  }
+  function addItemFromCatalog(){
+    const cat = catalog.find(c=>c.id===addItemId);
+    if(!cat) return;
+    const price = cat.priceCasual ?? cat.priceRegular ?? 0;
+    setItems(list=>[...list, {
+      id: uid(), itemId: cat.id, name: cat.name, category: cat.category,
+      mode: cat.mode, unit: cat.unit,
+      net: cat.mode==="weight" ? "0" : undefined,
+      qty: cat.mode==="unit" ? "0" : undefined,
+      price: String(price), priceMode:"casual",
+    }]);
+    setAddItemId("");
+  }
+
+  const computedItems = useMemo(()=>items.map(it=>{
+    const qty = parseFloat(it.mode==="weight" ? it.net : it.qty)||0;
+    const price = parseFloat(it.price)||0;
+    return {...it, amount: qty*price};
+  }),[items]);
+  const stats = billStats({items:computedItems});
+  const canSave = computedItems.length>0;
+
+  function handleSave(){
+    onSave(computedItems.map(it=> it.mode==="weight"
+      ? {...it, net:parseFloat(it.net)||0, price:parseFloat(it.price)||0}
+      : {...it, qty:parseFloat(it.qty)||0, price:parseFloat(it.price)||0}));
+  }
+
+  return (
+    <ModalShell title={`แก้ไขบิล #${bill.no}`} onClose={onClose} wide footer={
+      <>
+        <button className="btn" onClick={onClose}>ยกเลิก</button>
+        <button className="btn btn-primary" disabled={!canSave} onClick={handleSave}>บันทึกการแก้ไข</button>
+      </>
+    }>
+      <div style={{fontSize:13,color:"var(--ink-muted)",marginBottom:10}}>
+        {bill.customerName} · {fmtDateTime(bill.date)}
+      </div>
+      <div className="data-table-wrap">
+        <table className="data-table">
+          <thead><tr><th>สินค้า</th><th>น้ำหนัก/จำนวน</th><th>ราคา/หน่วย</th><th>รวม</th><th></th></tr></thead>
+          <tbody>
+            {computedItems.length===0 && (
+              <tr><td colSpan={5} className="empty-bill" style={{textAlign:"center"}}>ไม่มีรายการ — เพิ่มด้านล่าง</td></tr>
+            )}
+            {computedItems.map((it,idx)=>(
+              <tr key={it.id}>
+                <td className="item-name-ink">{it.name}</td>
+                <td>
+                  <input className="inline-input tabular" style={{maxWidth:100}} type="text" inputMode="decimal"
+                    value={it.mode==="weight" ? it.net : it.qty}
+                    onChange={e=>updateItemField(idx, it.mode==="weight"?"net":"qty", e.target.value)}/>
+                </td>
+                <td>
+                  <input className="inline-input tabular" style={{maxWidth:90}} type="text" inputMode="decimal"
+                    value={it.price} onChange={e=>updateItemField(idx,"price",e.target.value)}/>
+                </td>
+                <td className="tabular" style={{fontWeight:700}}>{money(it.amount)}</td>
+                <td>
+                  <button className="icon-btn" title="ลบรายการ" style={{color:"var(--danger)"}} onClick={()=>removeItem(idx)}>
+                    <Icon name="trash" size={15}/>
+                  </button>
+                </td>
+              </tr>
+            ))}
+          </tbody>
+        </table>
+      </div>
+      <div style={{display:"flex",gap:8,marginTop:10,alignItems:"end"}}>
+        <div className="field" style={{flex:1}}>
+          <label>เพิ่มรายการจากสินค้า</label>
+          <select className="select" value={addItemId} onChange={e=>setAddItemId(e.target.value)}>
+            <option value="">-- เลือกสินค้า --</option>
+            {catalog.map(c=><option key={c.id} value={c.id}>{c.name}</option>)}
+          </select>
+        </div>
+        <button className="btn" disabled={!addItemId} onClick={addItemFromCatalog}><Icon name="plus" size={15}/>เพิ่ม</button>
+      </div>
+      <div style={{marginTop:14,display:"flex",justifyContent:"space-between",fontSize:15,fontWeight:700,borderTop:"1px solid var(--border)",paddingTop:10}}>
+        <span>ยอดรวมใหม่ · {kg(stats.weight)} กก.</span>
+        <span className="tabular" style={{color:"var(--money)"}}>{money(stats.amount)} ฿</span>
+      </div>
+    </ModalShell>
+  );
+}
+
+function AddCustomerModal({onClose, onSave, initialData}){
+  const isEdit = !!initialData?.id;
+  const [idCard,setIdCard] = useState(initialData?.idCard || "");
+  const [name,setName] = useState(initialData?.name || "");
+  const [nickname,setNickname] = useState(initialData?.nickname || "");
+  const [licensePlate,setLicensePlate] = useState(initialData?.licensePlate || "");
+  const [phone,setPhone] = useState(initialData?.phone || ""); const [type,setType] = useState(initialData?.type || "retail");
+  const [photo,setPhoto] = useState(initialData?.photo || "");
+  const nameRef = useRef(null);
+
+  const idComplete = idCard.length===13;
+  const idValid = idComplete && isValidThaiID(idCard);
+  const canSave = name.trim().length>0 && phone.trim().length>=6;
+
+  function handleIdKeyDown(e){
+    if(e.key==="Enter"){ e.preventDefault(); if(nameRef.current) nameRef.current.focus(); }
+  }
+
+  return (
+    <ModalShell title={isEdit ? "แก้ไขข้อมูลสมาชิก" : "เพิ่มสมาชิกใหม่"} onClose={onClose} footer={
+      <>
+        <button className="btn" onClick={onClose}>ยกเลิก</button>
+        <button className="btn btn-primary" disabled={!canSave}
+          onClick={()=>onSave({name,nickname,licensePlate,phone,type,idCard:idComplete?idCard:"",idVerified:idValid,photo,cardInfo:initialData?.cardInfo||null})}>
+          {isEdit ? "บันทึกการแก้ไข" : "บันทึกสมาชิก"}
+        </button>
+      </>
+    }>
+      {photo && (
+        <div style={{display:"flex",justifyContent:"center",marginBottom:10}}>
+          <img src={photo} alt="รูปจากบัตรประชาชน" style={{width:96,height:120,objectFit:"cover",borderRadius:6,border:"1px solid var(--border)"}}/>
+        </div>
+      )}
+      <div className="idcard-box">
+        <div className="field">
+          <label><Icon name="creditCard" size={13}/> เลขบัตรประชาชน (แตะบัตรที่เครื่องอ่าน หรือกรอกเอง)</label>
+          <input className="input tabular" autoFocus inputMode="numeric" maxLength={13}
+            value={idCard} onChange={e=>setIdCard(e.target.value.replace(/\D/g,"").slice(0,13))}
+            onKeyDown={handleIdKeyDown} placeholder="X-XXXX-XXXXX-XX-X"/>
+        </div>
+        {idCard.length===0 && <div className="idcard-status muted">รอสแกนบัตร หรือกรอกเลข 13 หลัก (ไม่บังคับ)</div>}
+        {idCard.length>0 && !idComplete && <div className="idcard-status muted">กรอกแล้ว {idCard.length}/13 หลัก</div>}
+        {idComplete && idValid && <div className="idcard-status ok"><Icon name="shieldCheck" size={14}/>เลขบัตรถูกต้อง — ยืนยันตัวตนแล้ว</div>}
+        {idComplete && !idValid && <div className="idcard-status bad"><Icon name="alert" size={14}/>เลขบัตรไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง</div>}
+      </div>
+      <div className="field">
+        <label>ชื่อ-นามสกุล</label>
+        <input ref={nameRef} className="input" value={name} onChange={e=>setName(e.target.value)} placeholder="เช่น สมชาย ใจดี"/>
+      </div>
+      <div className="field">
+        <label>ชื่อเล่น</label>
+        <input className="input" value={nickname} onChange={e=>setNickname(e.target.value)} placeholder="ไม่บังคับ — ไว้เรียกจำง่ายๆ"/>
+      </div>
+      <div className="field">
+        <label>เบอร์โทรศัพท์</label>
+        <input className="input" value={phone} onChange={e=>setPhone(e.target.value.replace(/[^0-9-]/g,""))} placeholder="08x-xxx-xxxx"/>
+      </div>
+      <div className="field">
+        <label>ทะเบียนรถ</label>
+        <input className="input tabular" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} placeholder="ไม่บังคับ — เช่น กข 1234"/>
+      </div>
+      <div className="field">
+        <label>ประเภทลูกค้า</label>
+        <select className="select" value={type} onChange={e=>setType(e.target.value)}>
+          {CUSTOMER_TYPES.map(t=><option key={t.id} value={t.id}>{t.label}</option>)}
+        </select>
+      </div>
+    </ModalShell>
+  );
+}
+
+function InventoryPage({catalog, categories, onUpdatePrice, onToggleQuick, onAddItem, onRename, onDelete, onUpdateCode,
+  onAddCategory, onRenameCategory, onDeleteCategory}){
+  const [nName,setNName] = useState(""); const [nCat,setNCat] = useState(categories[0]?.id || "");
+  const [nMode,setNMode] = useState("weight"); const [nUnit,setNUnit] = useState("กก.");
+  const [nPriceRegular,setNPriceRegular] = useState(""); const [nPriceCasual,setNPriceCasual] = useState("");
+  const [nCode,setNCode] = useState("");
+  const [nCatName,setNCatName] = useState("");
+
+  useEffect(()=>{
+    if(!categories.some(c=>c.id===nCat)) setNCat(categories[0]?.id || "");
+  },[categories]);
+
+  function submitNew(){
+    if(!nName.trim() || !nPriceRegular || !nCat) return;
+    const pr = parseFloat(nPriceRegular)||0;
+    const pc = nPriceCasual!=="" ? (parseFloat(nPriceCasual)||0) : pr;
+    onAddItem({name:nName, code:nCode, category:nCat, mode:nMode, unit: nMode==="weight" ? "กก." : (nUnit||"ชิ้น"), priceRegular:pr, priceCasual:pc});
+    setNName(""); setNPriceRegular(""); setNPriceCasual(""); setNCode("");
+  }
+  function submitNewCategory(){
+    if(!nCatName.trim()) return;
+    onAddCategory(nCatName);
+    setNCatName("");
+  }
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">จัดการสินค้า</div>
+          <div className="page-sub">แก้ไขชื่อ ราคา และปุ่มลัดของสินค้าแต่ละชนิดได้โดยตรง — บันทึกทันทีที่พิมพ์</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="package" size={13}/>หมวดหมู่สินค้า</div>
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead><tr><th>ชื่อหมวดหมู่</th><th>จำนวนสินค้า</th><th></th></tr></thead>
+            <tbody>
+              {categories.map(c=>(
+                <tr key={c.id}>
+                  <td style={{maxWidth:280}}>
+                    <input className="inline-input" value={c.label} onChange={e=>onRenameCategory(c.id, e.target.value)}/>
+                  </td>
+                  <td className="tabular">{catalog.filter(i=>i.category===c.id).length}</td>
+                  <td>
+                    <button className="icon-btn" title="ลบหมวดหมู่" style={{color:"var(--danger)"}} onClick={()=>onDeleteCategory(c.id)}>
+                      <Icon name="trash" size={16}/>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{display:"flex",gap:8,marginTop:10}}>
+          <input className="input" style={{maxWidth:280}} placeholder="ชื่อหมวดหมู่ใหม่ เช่น เศษไม้" value={nCatName} onChange={e=>setNCatName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") submitNewCategory();}}/>
+          <button className="btn btn-primary" onClick={submitNewCategory}><Icon name="plus" size={16}/>เพิ่มหมวดหมู่</button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="settings-header settings-header-code">
+          <span>รหัส</span><span>สินค้า</span><span>ราคาประจำ</span><span>ราคาจร</span><span>หน่วย</span><span>ปุ่มลัด</span><span></span>
+        </div>
+        {categories.map(cat=>{
+          const items = catalog.filter(i=>i.category===cat.id);
+          if(items.length===0) return null;
+          return (
+            <div key={cat.id}>
+              <div className="settings-cat-title">{cat.label}</div>
+              {items.map(item=>(
+                <div key={item.id} className="settings-row settings-row-code">
+                  <input className="inline-input tabular" value={item.code||""} onChange={e=>onUpdateCode(item.id, e.target.value)} placeholder="-"/>
+                  <input className="inline-input item-name-ink" value={item.name} onChange={e=>onRename(item.id, e.target.value)}/>
+                  <input className="inline-input tabular" type="number" step="0.5" min="0" value={item.priceRegular}
+                    onChange={e=>onUpdatePrice(item.id, "priceRegular", parseFloat(e.target.value)||0)} />
+                  <input className="inline-input tabular" type="number" step="0.5" min="0" value={item.priceCasual}
+                    onChange={e=>onUpdatePrice(item.id, "priceCasual", parseFloat(e.target.value)||0)} />
+                  <div className="sunit tabular">฿/{item.unit}</div>
+                  <button className="icon-btn" title="ปุ่มลัด" onClick={()=>onToggleQuick(item.id)}>
+                    <Icon name="star" size={16} className={item.quick?"item-star fav":"item-star"} style={{position:"static"}}/>
+                  </button>
+                  <button className="icon-btn" title="ลบสินค้า" style={{color:"var(--danger)"}} onClick={()=>onDelete(item.id)}>
+                    <Icon name="trash" size={16}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+          );
+        })}
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="plus" size={13}/>เพิ่มสินค้าใหม่</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"end"}}>
+          <div className="field" style={{flex:"1 1 180px"}}><label>ชื่อสินค้า</label><input className="input" value={nName} onChange={e=>setNName(e.target.value)} placeholder="ชื่อสินค้า"/></div>
+          <div className="field" style={{flex:"1 1 100px"}}><label>รหัสสินค้า</label><input className="input tabular" value={nCode} onChange={e=>setNCode(e.target.value)} placeholder="ไม่บังคับ"/></div>
+          <div className="field" style={{flex:"1 1 140px"}}><label>หมวดหมู่</label>
+            <select className="select" value={nCat} onChange={e=>setNCat(e.target.value)}>
+              {categories.map(c=><option key={c.id} value={c.id}>{c.label}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{flex:"1 1 150px"}}><label>คิดราคาโดย</label>
+            <select className="select" value={nMode} onChange={e=>{ setNMode(e.target.value); if(e.target.value==="unit" && nUnit==="กก.") setNUnit("ชิ้น"); }}>
+              <option value="weight">ต่อน้ำหนัก (กก.)</option>
+              <option value="unit">ต่อหน่วย/ชิ้น</option>
+            </select>
+          </div>
+          {nMode==="unit" && (
+            <div className="field" style={{flex:"1 1 100px"}}><label>หน่วย</label>
+              <input className="input" value={nUnit} onChange={e=>setNUnit(e.target.value)} placeholder="เช่น ใบ, ชิ้น"/>
+            </div>
+          )}
+          <div className="field" style={{flex:"1 1 100px"}}><label>ราคาประจำ</label><input className="input tabular" type="number" min="0" step="0.5" value={nPriceRegular} onChange={e=>setNPriceRegular(e.target.value)}/></div>
+          <div className="field" style={{flex:"1 1 100px"}}><label>ราคาจร</label><input className="input tabular" type="number" min="0" step="0.5" value={nPriceCasual} onChange={e=>setNPriceCasual(e.target.value)} placeholder={nPriceRegular||"="}/></div>
+          <button className="btn btn-primary" onClick={submitNew}><Icon name="plus" size={16}/>เพิ่มสินค้า</button>
+        </div>
+      </div>
+    </>
+  );
+}
+
+function groupReceiptItems(items){
+  const order = []; const map = new Map();
+  items.forEach(it=>{
+    if(!map.has(it.itemId)){ map.set(it.itemId, []); order.push(it.itemId); }
+    map.get(it.itemId).push(it);
+  });
+  return order.map(itemId=>{
+    const lines = map.get(itemId);
+    const first = lines[0];
+    const netSum = lines.reduce((s,l)=> s + (l.mode==="weight"?l.net:0), 0);
+    const qtySum = lines.reduce((s,l)=> s + (l.mode==="unit"?l.qty:0), 0);
+    const amountSum = lines.reduce((s,l)=>s+l.amount,0);
+    const denom = first.mode==="weight" ? netSum : qtySum;
+    const avgPrice = denom>0 ? amountSum/denom : first.price;
+    return { itemId, name:first.name, mode:first.mode, unit:first.unit, netSum, qtySum, amountSum, avgPrice };
+  });
+}
+
+async function printReceipt(mmWidth){
+  if(hasDesktop){
+    try{ await window.scrapAPI.printReceipt(mmWidth); return; }catch(e){}
+  }
+  window.print();
+}
+
+function ReceiptModal({bill, onClose, storeName, printWidthMm, fontScale}){
+  const stats = billStats(bill);
+  const groups = useMemo(()=>groupReceiptItems(bill.items),[bill.items]);
+  const widthMm = printWidthMm || 80;
+  const contentWidthMm = Math.max(widthMm - 2, 1);
+
+  useEffect(()=>{
+    if(!hasDesktop) return;
+    const t = setTimeout(()=>{
+      const el = document.getElementById("receipt-print");
+      if(!el) return;
+      const r = el.getBoundingClientRect();
+      const rect = {x:Math.round(r.x), y:Math.round(r.y), width:Math.round(r.width), height:Math.round(r.height)};
+      if(rect.width<=0 || rect.height<=0) return;
+      window.scrapAPI.saveReceiptImage(rect, bill.no, bill.date).catch(()=>{});
+    }, 350);
+    return ()=>clearTimeout(t);
+  },[bill.id]);
+
+  return (
+    <div className="modal-backdrop" onMouseDown={e=>{ if(e.target===e.currentTarget) onClose(); }}>
+      <div className="modal-card" style={{maxWidth: Math.max(380, widthMm*3.78 + 40)}}>
+        <div className="modal-head">
+          <h3><Icon name="receipt" size={16}/> ใบเสร็จรับเงิน</h3>
+          <button className="icon-btn" onClick={onClose}><Icon name="x" size={17}/></button>
+        </div>
+        <div className="modal-body" style={{background:"var(--bg-2)",padding:14}}>
+          <div id="receipt-print" className="receipt" style={{width:`${contentWidthMm}mm`, maxWidth:`${contentWidthMm}mm`, '--r-scale':fontScale||1}}>
+            <div className="r-shop">{storeName || "ระบบ POS ค้าของเก่า by.leolung"}</div>
+            <div className="r-sub">ใบเสร็จรับเงิน</div>
+            <div className="r-customer">{bill.customerName}</div>
+            {bill.customerPhone && <div className="r-meta">{bill.customerPhone}</div>}
+            <div className="r-meta">บิลเลขที่ #{bill.no} · {fmtDateTime(bill.date)}</div>
+            <hr/>
+            <table>
+              <thead><tr><th>รายการ</th><th>น้ำหนัก/จำนวน</th><th>ราคา</th><th>รวม</th></tr></thead>
+              <tbody>
+                {groups.map(g=>(
+                  <tr key={g.itemId}>
+                    <td>{g.name}</td>
+                    <td>{g.mode==="weight" ? kg(g.netSum) : g.qtySum}</td>
+                    <td>{money(g.avgPrice)}</td>
+                    <td>{money(g.amountSum)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+            <hr/>
+            {stats.weight>0 && <div className="r-line"><span>น้ำหนักรวม</span><b>{kg(stats.weight)} กก.</b></div>}
+            <div className="r-total"><span>ยอดชำระ</span><span>{money(stats.amount)} ฿</span></div>
+            <div className="r-foot">ขอบคุณที่ใช้บริการ<br/>โปรดเก็บใบเสร็จไว้เป็นหลักฐาน</div>
+          </div>
+        </div>
+        <div className="modal-foot">
+          <button className="btn" onClick={onClose}>ปิด</button>
+          <button className="btn btn-primary" onClick={()=>printReceipt(widthMm)}><Icon name="printer" size={15}/>พิมพ์ใบเสร็จ (2 ใบ)</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ============================= HISTORY PAGE ============================= */
+function BillRow({b, isOpen, onToggle, onReprint, onDeleteBill, onEditBill, colSpan}){
+  const s = billStats(b);
+  return (
+    <React.Fragment>
+      <tr style={{cursor:"pointer"}} onClick={onToggle}>
+        <td className="tabular">
+          <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+            <Icon name="chevronRight" size={13} className={"group-chevron "+(isOpen?"open":"")}/>#{b.no}
+          </span>
+        </td>
+        <td className="tabular">{fmtDateTime(b.date)}</td>
+        <td>
+          {b.customerName}
+          {(b.customerNickname || b.customerLicensePlate) && (
+            <div style={{fontSize:10.5,color:"var(--ink-faint)"}}>
+              {b.customerNickname && <>{b.customerNickname}</>}
+              {b.customerNickname && b.customerLicensePlate && " · "}
+              {b.customerLicensePlate && <>ทะเบียน {b.customerLicensePlate}</>}
+            </div>
+          )}
+        </td>
+        <td className="tabular">{kg(s.weight)} กก.</td>
+        <td className="tabular" style={{fontWeight:700}}>{money(s.amount)} ฿</td>
+        <td>
+          <div className="row-actions">
+            <button className="icon-btn" title="พิมพ์ใบเสร็จซ้ำ"
+              onClick={e=>{e.stopPropagation(); onReprint(b);}}>
+              <Icon name="printer" size={16}/>
+            </button>
+            {onEditBill && (
+              <button className="icon-btn" title="แก้ไขบิล"
+                onClick={e=>{e.stopPropagation(); onEditBill(b);}}>
+                <Icon name="pencil" size={16}/>
+              </button>
+            )}
+            <button className="icon-btn" title="ยกเลิกบิล" style={{color:"var(--danger)"}}
+              onClick={e=>{e.stopPropagation(); onDeleteBill(b.id);}}>
+              <Icon name="trash" size={16}/>
+            </button>
+          </div>
+        </td>
+      </tr>
+      {isOpen && (
+        <tr>
+          <td colSpan={colSpan} style={{background:"var(--bg-2)",padding:"10px 14px"}}>
+            <table className="data-table" style={{background:"transparent"}}>
+              <thead><tr><th>สินค้า</th><th>น้ำหนัก/จำนวน</th><th>ราคา</th><th>รวม</th></tr></thead>
+              <tbody>
+                {b.items.map(it=>(
+                  <tr key={it.id}>
+                    <td className="item-name-ink">{it.name}</td>
+                    <td className="tabular">{it.mode==="weight" ? `${kg(it.net)} กก.` : `${it.qty} ${it.unit}`}</td>
+                    <td className="tabular">{money(it.price)} <span style={{color:"var(--ink-faint)",fontSize:11}}>({it.priceMode==="regular"?"ประจำ":"จร"})</span></td>
+                    <td className="tabular">{money(it.amount)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </td>
+        </tr>
+      )}
+    </React.Fragment>
+  );
+}
+
+function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
+  const [scope,setScope] = useState("today"); // today | all | daily
+  const [search,setSearch] = useState("");
+  const [expandedId,setExpandedId] = useState(null);
+  const [expandedDay,setExpandedDay] = useState(null);
+
+  const searchFiltered = useMemo(()=>{
+    const q = search.trim().toLowerCase();
+    if(!q) return bills;
+    return bills.filter(b=> b.customerName.toLowerCase().includes(q) || String(b.no).includes(q)
+      || (b.customerNickname||"").toLowerCase().includes(q) || (b.customerLicensePlate||"").toLowerCase().includes(q));
+  },[bills, search]);
+
+  const filtered = useMemo(()=>{
+    let list = scope==="today" ? searchFiltered.filter(b=>b.date.slice(0,10)===todayKey()) : searchFiltered;
+    return list.slice().sort((a,b)=>b.date.localeCompare(a.date));
+  },[searchFiltered, scope]);
+
+  const dailyGroups = useMemo(()=>{
+    const map = new Map();
+    searchFiltered.forEach(b=>{
+      const d = b.date.slice(0,10);
+      if(!map.has(d)) map.set(d, []);
+      map.get(d).push(b);
+    });
+    return Array.from(map.entries()).map(([date,list])=>{
+      const dayBills = list.slice().sort((a,b)=>b.date.localeCompare(a.date));
+      return {
+        date, bills: dayBills,
+        count: dayBills.length,
+        weight: dayBills.reduce((s,b)=>s+billStats(b).weight,0),
+        amount: dayBills.reduce((s,b)=>s+billStats(b).amount,0),
+      };
+    }).sort((a,b)=>b.date.localeCompare(a.date));
+  },[searchFiltered]);
+
+  const isDaily = scope==="daily";
+  const statsSource = isDaily ? searchFiltered : filtered;
+  const totalAmount = statsSource.reduce((s,b)=>s+billStats(b).amount,0);
+  const totalWeight = statsSource.reduce((s,b)=>s+billStats(b).weight,0);
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">ประวัติการขาย</div>
+          <div className="page-sub">ดูรายละเอียดหรือยกเลิกบิลย้อนหลังได้ที่นี่ — ดูยอดรวมย้อนหลังแยกรายวันได้ที่แท็บ "สรุปรายวัน"</div>
+        </div>
+      </div>
+
+      <div className="stat-row">
+        <div className="stat-tile">
+          <div className="stat-tile-label">จำนวนบิล</div>
+          <div className="stat-tile-val tabular">{statsSource.length}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">น้ำหนักรวม</div>
+          <div className="stat-tile-val tabular">{kg(totalWeight)} กก.</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">ยอดเงินรวม</div>
+          <div className="stat-tile-val tabular" style={{color:"var(--money)"}}>{money(totalAmount)} ฿</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
+          <div className="mode-toggle" style={{maxWidth:320}}>
+            <button type="button" className={scope==="today"?"active":""} onClick={()=>setScope("today")}>วันนี้</button>
+            <button type="button" className={scope==="all"?"active":""} onClick={()=>setScope("all")}>ทั้งหมด</button>
+            <button type="button" className={scope==="daily"?"active":""} onClick={()=>setScope("daily")}>สรุปรายวัน</button>
+          </div>
+          <div className="input-wrap" style={{flex:"1 1 220px"}}>
+            <span className="search-icon"><Icon name="search" size={15}/></span>
+            <input className="input input-search" placeholder="ค้นหาเลขบิล ชื่อลูกค้า ชื่อเล่น หรือทะเบียนรถ..." value={search} onChange={e=>setSearch(e.target.value)}/>
+          </div>
+        </div>
+      </div>
+
+      {isDaily ? (
+        <div className="data-table-wrap">
+          {dailyGroups.length===0 ? (
+            <div className="empty-bill">ไม่มีบิลที่ตรงกับเงื่อนไข</div>
+          ) : (
+            <table className="data-table">
+              <thead><tr><th>วันที่</th><th>จำนวนบิล</th><th>น้ำหนักรวม</th><th>ยอดเงินรวม</th></tr></thead>
+              <tbody>
+                {dailyGroups.map(g=>{
+                  const isOpen = expandedDay===g.date;
+                  return (
+                    <React.Fragment key={g.date}>
+                      <tr style={{cursor:"pointer"}} onClick={()=>setExpandedDay(isOpen?null:g.date)}>
+                        <td className="tabular">
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                            <Icon name="chevronRight" size={13} className={"group-chevron "+(isOpen?"open":"")}/>
+                            {fmtDateOnlyTH(g.date)}
+                          </span>
+                        </td>
+                        <td className="tabular">{g.count}</td>
+                        <td className="tabular">{kg(g.weight)} กก.</td>
+                        <td className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(g.amount)} ฿</td>
+                      </tr>
+                      {isOpen && (
+                        <tr>
+                          <td colSpan={4} style={{background:"var(--bg-2)",padding:"10px 14px"}}>
+                            <table className="data-table" style={{background:"transparent"}}>
+                              <thead><tr>
+                                <th>เลขที่</th><th>วันที่เวลา</th><th>ลูกค้า</th><th>น้ำหนักรวม</th><th>ยอดเงิน</th><th></th>
+                              </tr></thead>
+                              <tbody>
+                                {g.bills.map(b=>(
+                                  <BillRow key={b.id} b={b} isOpen={expandedId===b.id}
+                                    onToggle={()=>setExpandedId(expandedId===b.id?null:b.id)}
+                                    onReprint={onReprint} onDeleteBill={onDeleteBill} onEditBill={onEditBill} colSpan={6}/>
+                                ))}
+                              </tbody>
+                            </table>
+                          </td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          )}
+        </div>
+      ) : (
+        <div className="data-table-wrap">
+          {filtered.length===0 ? (
+            <div className="empty-bill">ไม่มีบิลที่ตรงกับเงื่อนไข</div>
+          ) : (
+            <table className="data-table">
+              <thead><tr>
+                <th>เลขที่</th><th>วันที่เวลา</th><th>ลูกค้า</th><th>น้ำหนักรวม</th><th>ยอดเงิน</th><th></th>
+              </tr></thead>
+              <tbody>
+                {filtered.map(b=>(
+                  <BillRow key={b.id} b={b} isOpen={expandedId===b.id}
+                    onToggle={()=>setExpandedId(expandedId===b.id?null:b.id)}
+                    onReprint={onReprint} onDeleteBill={onDeleteBill} onEditBill={onEditBill} colSpan={6}/>
+                ))}
+              </tbody>
+            </table>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+/* ============================= MEMBERS PAGE ============================= */
+function MembersPage({customers, bills, categories, onAddCustomer, onUpdateCustomer, onDeleteCustomer, onReprint, onEditBill}){
+  const [search,setSearch] = useState("");
+  const [selectedId,setSelectedId] = useState(null);
+  const [modalMode,setModalMode] = useState(null); // null | "new" | <customer object> (แก้ไข)
+
+  const catLabelMap = useMemo(()=>Object.fromEntries(categories.map(c=>[c.id,c.label])), [categories]);
+
+  const filtered = useMemo(()=>{
+    const q = search.trim().toLowerCase();
+    let list = customers.slice().sort((a,b)=>(b.createdAt||"").localeCompare(a.createdAt||""));
+    if(q) list = list.filter(c=>
+      c.name.toLowerCase().includes(q) || (c.phone||"").includes(q) || (c.idCard||"").includes(q)
+      || (c.nickname||"").toLowerCase().includes(q) || (c.licensePlate||"").toLowerCase().includes(q));
+    return list;
+  },[customers, search]);
+
+  useEffect(()=>{
+    if(selectedId && !customers.some(c=>c.id===selectedId)) setSelectedId(null);
+  },[customers, selectedId]);
+
+  const selected = customers.find(c=>c.id===selectedId) || null;
+  const stats = selected ? customerStats(selected.id, bills) : null;
+
+  const categoryBreakdown = useMemo(()=>{
+    if(!stats) return [];
+    const map = new Map();
+    stats.bills.forEach(b=>{
+      b.items.forEach(it=>{
+        const key = it.category || "misc";
+        const cur = map.get(key) || {category:key, weight:0, amount:0};
+        if(it.mode==="weight") cur.weight += it.net;
+        cur.amount += it.amount;
+        map.set(key, cur);
+      });
+    });
+    return Array.from(map.values()).sort((a,b)=>b.amount-a.amount);
+  },[stats]);
+
+  function handleDelete(c){
+    if(!window.confirm(`ลบสมาชิก "${c.name}" ใช่หรือไม่? (ประวัติบิลเดิมจะยังอยู่ในระบบ แต่จะไม่ผูกกับสมาชิกนี้อีก)`)) return;
+    onDeleteCustomer(c.id);
+  }
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">จัดการสมาชิก</div>
+          <div className="page-sub">ดูข้อมูลบัตรประชาชน แก้ไข/ลบสมาชิก และประวัติการซื้อขายแยกตามหมวดหมู่</div>
+        </div>
+        <button className="btn btn-primary" onClick={()=>setModalMode("new")}>
+          <Icon name="userPlus" size={16}/>เพิ่มสมาชิกใหม่
+        </button>
+      </div>
+
+      <div className="stat-row">
+        <div className="stat-tile">
+          <div className="stat-tile-label">จำนวนสมาชิกทั้งหมด</div>
+          <div className="stat-tile-val tabular">{customers.length}</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">ยืนยันตัวตนด้วยบัตรแล้ว</div>
+          <div className="stat-tile-val tabular">{customers.filter(c=>c.idVerified).length}</div>
+        </div>
+      </div>
+
+      <div className="members-grid">
+        <div className="member-list-col panel">
+          <div className="input-wrap">
+            <span className="search-icon"><Icon name="search" size={15}/></span>
+            <input className="input input-search" placeholder="ค้นหาชื่อ เบอร์โทร หรือเลขบัตร..."
+              value={search} onChange={e=>setSearch(e.target.value)}/>
+          </div>
+          <div style={{marginTop:8, display:"flex", flexDirection:"column", gap:2, maxHeight:560, overflowY:"auto"}}>
+            {filtered.length===0 && <div style={{fontSize:12.5,color:"var(--ink-faint)",padding:"8px 2px"}}>ไม่พบสมาชิก</div>}
+            {filtered.map(c=>{
+              const s = customerStats(c.id, bills);
+              return (
+                <div key={c.id} className={"member-row "+(selectedId===c.id?"active":"")} onClick={()=>setSelectedId(c.id)}>
+                  <div>
+                    <div className="member-row-name">
+                      {c.name}
+                      {c.idVerified && <Icon name="shieldCheck" size={12}/>}
+                    </div>
+                    <div className="member-row-meta">{c.phone||"-"} · {s.visits} ครั้ง</div>
+                  </div>
+                  <span className={"badge "+typeMeta(c.type).badge}>{typeMeta(c.type).label}</span>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+
+        <div className="member-detail-col panel">
+          {!selected ? (
+            <div style={{textAlign:"center", color:"var(--ink-faint)", padding:"40px 10px"}}>
+              เลือกสมาชิกจากรายการด้านซ้าย เพื่อดูรายละเอียด
+            </div>
+          ) : (
+            <>
+              <div className="member-detail-head">
+                {selected.photo ? <img src={selected.photo} className="member-photo-lg" alt=""/> :
+                  <div className="member-photo-ph"><Icon name="user" size={30}/></div>}
+                <div style={{flex:1, minWidth:0}}>
+                  <div style={{display:"flex",alignItems:"center",gap:8,flexWrap:"wrap"}}>
+                    <div className="ac-name" style={{fontSize:19}}>{selected.name}{selected.nickname && <span style={{fontWeight:400,color:"var(--ink-muted)"}}> ({selected.nickname})</span>}</div>
+                    <span className={"badge "+typeMeta(selected.type).badge}>{typeMeta(selected.type).label}</span>
+                  </div>
+                  <div className="ac-phone" style={{marginTop:4}}><Icon name="phone" size={12}/>{selected.phone||"-"}</div>
+                  {selected.licensePlate && <div className="ac-phone">ทะเบียน {selected.licensePlate}</div>}
+                  {selected.idVerified ? (
+                    <div className="ac-verified"><Icon name="shieldCheck" size={13}/>ยืนยันตัวตนแล้ว · {maskThaiID(selected.idCard)}</div>
+                  ) : selected.idCard ? (
+                    <div className="ac-verified" style={{color:"var(--ink-muted)"}}>เลขบัตร {maskThaiID(selected.idCard)}</div>
+                  ) : null}
+                  <div style={{marginTop:9,display:"flex",gap:8}}>
+                    <button className="btn" onClick={()=>setModalMode(selected)}><Icon name="pencil" size={14}/>แก้ไข</button>
+                    <button className="btn" style={{color:"var(--danger)"}} onClick={()=>handleDelete(selected)}><Icon name="trash" size={14}/>ลบสมาชิก</button>
+                  </div>
+                </div>
+              </div>
+
+              {selected.cardInfo && (selected.cardInfo.address || selected.cardInfo.birthDateIso) && (
+                <div className="panel" style={{marginTop:12, background:"var(--bg-2)"}}>
+                  <div className="panel-title"><Icon name="creditCard" size={13}/>ข้อมูลจากบัตรประชาชน</div>
+                  <div style={{display:"grid",gridTemplateColumns:"1fr 1fr",gap:"6px 16px",fontSize:12.5}}>
+                    {selected.cardInfo.englishName && <div><span style={{color:"var(--ink-faint)"}}>ชื่อ (EN): </span>{selected.cardInfo.englishName}</div>}
+                    {selected.cardInfo.gender && <div><span style={{color:"var(--ink-faint)"}}>เพศ: </span>{selected.cardInfo.gender}</div>}
+                    {selected.cardInfo.birthDateIso && <div><span style={{color:"var(--ink-faint)"}}>วันเกิด: </span>{fmtDateOnlyTH(selected.cardInfo.birthDateIso)}</div>}
+                    {selected.cardInfo.issueDateIso && <div><span style={{color:"var(--ink-faint)"}}>วันออกบัตร: </span>{fmtDateOnlyTH(selected.cardInfo.issueDateIso)}</div>}
+                    {selected.cardInfo.expireDateIso && <div><span style={{color:"var(--ink-faint)"}}>วันหมดอายุ: </span>{fmtDateOnlyTH(selected.cardInfo.expireDateIso)}</div>}
+                  </div>
+                  {selected.cardInfo.address && (
+                    <div style={{marginTop:6,fontSize:12.5}}><span style={{color:"var(--ink-faint)"}}>ที่อยู่: </span>{selected.cardInfo.address}</div>
+                  )}
+                </div>
+              )}
+
+              <div className="stat-row" style={{marginTop:12}}>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">ซื้อขายแล้ว</div>
+                  <div className="stat-tile-val tabular">{stats.visits} ครั้ง</div>
+                </div>
+                <div className="stat-tile">
+                  <div className="stat-tile-label">ยอดซื้อขายรวม</div>
+                  <div className="stat-tile-val tabular" style={{color:"var(--money)"}}>{money(stats.spent)} ฿</div>
+                </div>
+              </div>
+
+              {categoryBreakdown.length>0 && (
+                <div className="panel" style={{marginTop:12}}>
+                  <div className="panel-title"><Icon name="layers" size={13}/>สรุปตามหมวดหมู่สินค้า</div>
+                  {categoryBreakdown.map(row=>(
+                    <div key={row.category} className="cat-breakdown-row">
+                      <span>{catLabelMap[row.category] || "อื่นๆ"}</span>
+                      <span className="tabular">{row.weight>0 ? `${kg(row.weight)} กก. · ` : ""}{money(row.amount)} ฿</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              <div className="panel" style={{marginTop:12}}>
+                <div className="panel-title"><Icon name="history" size={13}/>ประวัติการซื้อขายล่าสุด</div>
+                {stats.bills.length===0 ? (
+                  <div className="empty-bill">ยังไม่มีประวัติการซื้อขาย</div>
+                ) : (
+                  <div className="data-table-wrap">
+                    <table className="data-table">
+                      <thead><tr><th>เลขที่</th><th>วันที่เวลา</th><th>น้ำหนักรวม</th><th>ยอดเงิน</th><th></th></tr></thead>
+                      <tbody>
+                        {stats.bills.slice(0,20).map(b=>{
+                          const s = billStats(b);
+                          return (
+                            <tr key={b.id}>
+                              <td className="tabular">#{b.no}</td>
+                              <td className="tabular">{fmtDateTime(b.date)}</td>
+                              <td className="tabular">{kg(s.weight)} กก.</td>
+                              <td className="tabular" style={{fontWeight:700}}>{money(s.amount)} ฿</td>
+                              <td>
+                                <div className="row-actions">
+                                  {onReprint && (
+                                    <button className="icon-btn" title="พิมพ์ใบเสร็จซ้ำ" onClick={()=>onReprint(b)}>
+                                      <Icon name="printer" size={15}/>
+                                    </button>
+                                  )}
+                                  {onEditBill && (
+                                    <button className="icon-btn" title="แก้ไขบิล" onClick={()=>onEditBill(b)}>
+                                      <Icon name="pencil" size={15}/>
+                                    </button>
+                                  )}
+                                </div>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {modalMode && (
+        <AddCustomerModal
+          initialData={modalMode==="new" ? null : modalMode}
+          onClose={()=>setModalMode(null)}
+          onSave={(data)=>{
+            if(modalMode==="new") onAddCustomer(data);
+            else onUpdateCustomer(modalMode.id, data);
+            setModalMode(null);
+          }}
+        />
+      )}
+    </>
+  );
+}
+
+/* ============================= FINANCE SUMMARY (ใช้ร่วมกัน) ============================= */
+function FinanceSummary({bills, extraIncome, advances}){
+  const [monthKey,setMonthKey] = useState(monthKeyToday());
+  const s = financeSummaryFor(monthKey, {bills, extraIncome, advances});
+  return (
+    <div className="panel">
+      <div className="page-header" style={{marginBottom:0}}>
+        <div className="panel-title" style={{marginBottom:0}}><Icon name="wallet" size={13}/>สรุปรายรับ-รายจ่าย · {fmtMonthLabel(monthKey)}</div>
+        <input type="month" className="input tabular" style={{maxWidth:160}} value={monthKey} onChange={e=>setMonthKey(e.target.value || monthKeyToday())}/>
+      </div>
+      <div className="stat-row" style={{marginTop:10}}>
+        <div className="stat-tile">
+          <div className="stat-tile-label">รายรับเสริม</div>
+          <div className="stat-tile-val tabular" style={{color:"var(--money)"}}>+{money(s.incomeTotal)} ฿</div>
+        </div>
+        <div className="stat-tile">
+          <div className="stat-tile-label">เงินเบิกพนักงาน</div>
+          <div className="stat-tile-val tabular" style={{color:"var(--danger)"}}>-{money(s.advanceTotal)} ฿</div>
+        </div>
+        <div className="stat-tile" style={{borderColor:"var(--accent)"}}>
+          <div className="stat-tile-label">สุทธิ (รายรับ − รายจ่าย)</div>
+          <div className="stat-tile-val tabular" style={{color: s.net>=0 ? "var(--money)" : "var(--danger)"}}>{s.net>=0?"+":""}{money(s.net)} ฿</div>
+        </div>
+      </div>
+      <div style={{fontSize:11.5,color:"var(--ink-faint)",marginTop:9}}>
+        อ้างอิง: ยอดจ่ายซื้อของเก่าเดือนนี้ {money(s.scrapPurchases)} ฿ (ธุรกิจหลัก ไม่รวมในยอดสุทธินี้)
+      </div>
+    </div>
+  );
+}
+
+/* ============================= INCOME PAGE ============================= */
+function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, onIssueReceipt}){
+  const [date,setDate] = useState(todayKey());
+  const [description,setDescription] = useState("");
+  const [amount,setAmount] = useState("");
+  const [pendingItems,setPendingItems] = useState([]); // รายการที่กำลังเพิ่ม ยังไม่บันทึกเป็นบิล
+  const [scope,setScope] = useState("today");
+  const [expandedId,setExpandedId] = useState(null);
+  const descRef = useRef(null);
+
+  function addPendingItem(){
+    const amt = parseFloat(amount)||0;
+    if(!description.trim() || amt<=0) return;
+    setPendingItems(list=>[...list, {id:uid(), description:description.trim(), amount:amt}]);
+    setDescription(""); setAmount("");
+    if(descRef.current) descRef.current.focus();
+  }
+  function removePendingItem(id){
+    setPendingItems(list=>list.filter(x=>x.id!==id));
+  }
+  function submitBill(){
+    if(pendingItems.length===0) return;
+    onAddIncome({date: date||todayKey(), items: pendingItems});
+    setPendingItems([]);
+    setDate(todayKey());
+  }
+  const pendingTotal = pendingItems.reduce((s,i)=>s+i.amount,0);
+
+  const filtered = useMemo(()=>{
+    let list = scope==="today" ? extraIncome.filter(i=>i.date===todayKey()) : extraIncome;
+    return list.slice().sort((a,b)=>b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  },[extraIncome, scope]);
+  const filteredTotal = filtered.reduce((s,i)=>s+i.amount,0);
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">รายรับเสริม</div>
+          <div className="page-sub">บันทึกรายได้จากการขายสินค้าเล็กน้อยของร้าน แยกจากยอดซื้อของเก่า — เพิ่มได้หลายรายการในบิลเดียว</div>
+        </div>
+      </div>
+
+      <FinanceSummary bills={bills} extraIncome={extraIncome} advances={advances}/>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="plus" size={13}/>บันทึกรายรับใหม่</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"end"}}>
+          <div className="field" style={{flex:"1 1 150px"}}><label>วันที่</label>
+            <input type="date" className="input tabular" value={date} onChange={e=>setDate(e.target.value)}/>
+          </div>
+          <div className="field" style={{flex:"2 1 220px"}}><label>รายการ</label>
+            <input ref={descRef} className="input" value={description} onChange={e=>setDescription(e.target.value)} placeholder="เช่น ขายขวดน้ำ, ขายเศษพลาสติกให้ลูกค้าเดินผ่าน" onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+          </div>
+          <div className="field" style={{flex:"1 1 120px"}}><label>จำนวนเงิน</label>
+            <input className="input tabular" type="number" min="0" step="1" value={amount} onChange={e=>setAmount(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+          </div>
+          <button className="btn" onClick={addPendingItem}><Icon name="plus" size={16}/>เพิ่มรายการ</button>
+        </div>
+
+        {pendingItems.length>0 && (
+          <div style={{marginTop:12}}>
+            <div style={{display:"flex",flexDirection:"column",gap:6}}>
+              {pendingItems.map(p=>(
+                <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",border:"1px solid var(--border)",borderRadius:"var(--radius)",background:"var(--surface-2)"}}>
+                  <span style={{flex:1}}>{p.description}</span>
+                  <span className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(p.amount)} ฿</span>
+                  <button className="icon-btn" title="ลบรายการนี้" style={{color:"var(--danger)"}} onClick={()=>removePendingItem(p.id)}>
+                    <Icon name="x" size={15}/>
+                  </button>
+                </div>
+              ))}
+            </div>
+            <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",marginTop:10,gap:10,flexWrap:"wrap"}}>
+              <div style={{fontSize:14}}>รวม {pendingItems.length} รายการ · <b className="tabular" style={{color:"var(--money)"}}>{money(pendingTotal)} ฿</b></div>
+              <button className="btn btn-primary" onClick={submitBill}><Icon name="check" size={16}/>บันทึกรายรับ ({pendingItems.length} รายการ)</button>
+            </div>
+          </div>
+        )}
+      </div>
+
+      <div className="panel">
+        <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",flexWrap:"wrap",gap:10}}>
+          <div className="mode-toggle" style={{maxWidth:220}}>
+            <button type="button" className={scope==="today"?"active":""} onClick={()=>setScope("today")}>วันนี้</button>
+            <button type="button" className={scope==="all"?"active":""} onClick={()=>setScope("all")}>ทั้งหมด</button>
+          </div>
+          <div style={{fontSize:14,fontWeight:700}}>รวม <span className="tabular" style={{color:"var(--money)"}}>{money(filteredTotal)} ฿</span></div>
+        </div>
+      </div>
+
+      <div className="data-table-wrap">
+        {filtered.length===0 ? (
+          <div className="empty-bill">ยังไม่มีรายการรายรับ</div>
+        ) : (
+          <table className="data-table">
+            <thead><tr><th>วันที่</th><th>รายการ</th><th>จำนวนเงิน</th><th></th></tr></thead>
+            <tbody>
+              {filtered.map(i=>{
+                const lineItems = i.items || [{id:i.id, description:i.description, amount:i.amount}];
+                const multi = lineItems.length>1;
+                const isOpen = expandedId===i.id;
+                return (
+                  <React.Fragment key={i.id}>
+                    <tr style={multi?{cursor:"pointer"}:undefined} onClick={multi?()=>setExpandedId(isOpen?null:i.id):undefined}>
+                      <td className="tabular">{fmtDateOnlyTH(i.date)}</td>
+                      <td className="item-name-ink">
+                        {multi ? (
+                          <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
+                            <Icon name="chevronRight" size={13} className={"group-chevron "+(isOpen?"open":"")}/>
+                            {lineItems[0].description}
+                            <span className="round-badge">{lineItems.length} รายการ</span>
+                          </span>
+                        ) : lineItems[0].description}
+                      </td>
+                      <td className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(i.amount)} ฿</td>
+                      <td>
+                        <div className="row-actions">
+                          <button className="icon-btn" title="ออกบิล/พิมพ์ใบเสร็จ" onClick={e=>{e.stopPropagation(); onIssueReceipt(i);}}>
+                            <Icon name="printer" size={16}/>
+                          </button>
+                          <button className="icon-btn" title="ลบ" style={{color:"var(--danger)"}} onClick={e=>{e.stopPropagation(); onDeleteIncome(i.id);}}>
+                            <Icon name="trash" size={16}/>
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                    {multi && isOpen && (
+                      <tr>
+                        <td colSpan={4} style={{background:"var(--bg-2)",padding:"10px 14px"}}>
+                          <table className="data-table" style={{background:"transparent"}}>
+                            <thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead>
+                            <tbody>
+                              {lineItems.map(li=>(
+                                <tr key={li.id}>
+                                  <td className="item-name-ink">{li.description}</td>
+                                  <td className="tabular">{money(li.amount)} ฿</td>
+                                </tr>
+                              ))}
+                            </tbody>
+                          </table>
+                        </td>
+                      </tr>
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ============================= PAYROLL PAGE ============================= */
+function PayrollPage({employees, advances, extraIncome, bills, onAddEmployee, onUpdateEmployee, onDeleteEmployee, onAddAdvance, onDeleteAdvance, onUpdateAdvance}){
+  const [enName,setEnName] = useState(""); const [enPos,setEnPos] = useState(""); const [enSalary,setEnSalary] = useState("");
+  const [advEmployeeId,setAdvEmployeeId] = useState("");
+  const [advDate,setAdvDate] = useState(todayKey());
+  const [advAmount,setAdvAmount] = useState("");
+  const [advNote,setAdvNote] = useState("");
+  const [scope,setScope] = useState("today");
+  const monthKey = monthKeyToday();
+
+  useEffect(()=>{
+    if(!employees.some(e=>e.id===advEmployeeId)) setAdvEmployeeId(employees[0]?.id || "");
+  },[employees]);
+
+  function submitEmployee(){
+    if(!enName.trim()) return;
+    onAddEmployee({name:enName, position:enPos, monthlySalary:parseFloat(enSalary)||0});
+    setEnName(""); setEnPos(""); setEnSalary("");
+  }
+  function submitAdvance(){
+    const amt = parseFloat(advAmount)||0;
+    if(!advEmployeeId || amt<=0) return;
+    onAddAdvance({employeeId:advEmployeeId, date:advDate||todayKey(), amount:amt, note:advNote});
+    setAdvAmount(""); setAdvNote("");
+  }
+
+  const empSummary = useMemo(()=>{
+    return employees.map(e=>{
+      const advThisMonth = advances.filter(a=>a.employeeId===e.id && monthKeyOf(a.date)===monthKey).reduce((s,a)=>s+a.amount,0);
+      return { ...e, advThisMonth, remaining: (e.monthlySalary||0) - advThisMonth };
+    });
+  },[employees, advances, monthKey]);
+
+  const filteredAdvances = useMemo(()=>{
+    let list = scope==="today" ? advances.filter(a=>a.date===todayKey()) : advances;
+    return list.slice().sort((a,b)=>b.date.localeCompare(a.date) || b.createdAt.localeCompare(a.createdAt));
+  },[advances, scope]);
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">เงินเดือน / เบิกเงิน</div>
+          <div className="page-sub">จัดการพนักงาน เงินเดือนตั้งต้น และเงินเบิกรายวัน — ยอดคงเหลือคำนวณให้อัตโนมัติทุกเดือน</div>
+        </div>
+      </div>
+
+      <FinanceSummary bills={bills} extraIncome={extraIncome} advances={advances}/>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="users" size={13}/>พนักงาน · {fmtMonthLabel(monthKey)}</div>
+        <div className="data-table-wrap">
+          <table className="data-table">
+            <thead><tr><th>ชื่อ</th><th>ตำแหน่ง</th><th>เงินเดือน</th><th>เบิกไปแล้ว</th><th>คงเหลือที่ต้องจ่าย</th><th></th></tr></thead>
+            <tbody>
+              {empSummary.length===0 && (
+                <tr><td colSpan={6} className="empty-bill" style={{textAlign:"center"}}>ยังไม่มีพนักงาน — เพิ่มด้านล่าง</td></tr>
+              )}
+              {empSummary.map(e=>(
+                <tr key={e.id}>
+                  <td className="item-name-ink" style={{fontWeight:700}}>{e.name}</td>
+                  <td>
+                    <input className="inline-input" style={{maxWidth:140}} value={e.position||""}
+                      onChange={ev=>onUpdateEmployee(e.id,{position:ev.target.value})} placeholder="-"/>
+                  </td>
+                  <td>
+                    <input className="inline-input tabular" style={{maxWidth:110}} type="number" min="0" step="100" value={e.monthlySalary}
+                      onChange={ev=>onUpdateEmployee(e.id,{monthlySalary:parseFloat(ev.target.value)||0})}/>
+                  </td>
+                  <td className="tabular" style={{color:"var(--danger)"}}>-{money(e.advThisMonth)} ฿</td>
+                  <td className="tabular" style={{fontWeight:700, color: e.remaining>=0 ? "var(--money)" : "var(--danger)"}}>{money(e.remaining)} ฿</td>
+                  <td>
+                    <button className="icon-btn" title="ลบพนักงาน" style={{color:"var(--danger)"}} onClick={()=>onDeleteEmployee(e.id)}>
+                      <Icon name="trash" size={16}/>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"end",marginTop:10}}>
+          <div className="field" style={{flex:"1 1 160px"}}><label>ชื่อพนักงาน</label>
+            <input className="input" value={enName} onChange={e=>setEnName(e.target.value)} placeholder="ชื่อพนักงาน"/>
+          </div>
+          <div className="field" style={{flex:"1 1 140px"}}><label>ตำแหน่ง</label>
+            <input className="input" value={enPos} onChange={e=>setEnPos(e.target.value)} placeholder="เช่น พนักงานชั่งของ"/>
+          </div>
+          <div className="field" style={{flex:"1 1 120px"}}><label>เงินเดือน</label>
+            <input className="input tabular" type="number" min="0" step="100" value={enSalary} onChange={e=>setEnSalary(e.target.value)}/>
+          </div>
+          <button className="btn btn-primary" onClick={submitEmployee}><Icon name="plus" size={16}/>เพิ่มพนักงาน</button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="wallet" size={13}/>บันทึกเบิกเงิน</div>
+        <div style={{display:"flex",flexWrap:"wrap",gap:10,alignItems:"end"}}>
+          <div className="field" style={{flex:"1 1 160px"}}><label>พนักงาน</label>
+            <select className="select" value={advEmployeeId} onChange={e=>setAdvEmployeeId(e.target.value)}>
+              {employees.length===0 && <option value="">-- ยังไม่มีพนักงาน --</option>}
+              {employees.map(e=><option key={e.id} value={e.id}>{e.name}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{flex:"1 1 140px"}}><label>วันที่</label>
+            <input type="date" className="input tabular" value={advDate} onChange={e=>setAdvDate(e.target.value)}/>
+          </div>
+          <div className="field" style={{flex:"1 1 110px"}}><label>จำนวนเงิน</label>
+            <input className="input tabular" type="number" min="0" step="50" value={advAmount} onChange={e=>setAdvAmount(e.target.value)}/>
+          </div>
+          <div className="field" style={{flex:"1 1 160px"}}><label>หมายเหตุ</label>
+            <input className="input" value={advNote} onChange={e=>setAdvNote(e.target.value)} placeholder="ไม่บังคับ" onKeyDown={e=>{if(e.key==="Enter") submitAdvance();}}/>
+          </div>
+          <button className="btn btn-primary" disabled={!employees.length} onClick={submitAdvance}><Icon name="wallet" size={16}/>เบิกเงิน</button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="mode-toggle" style={{maxWidth:220}}>
+          <button type="button" className={scope==="today"?"active":""} onClick={()=>setScope("today")}>วันนี้</button>
+          <button type="button" className={scope==="all"?"active":""} onClick={()=>setScope("all")}>ทั้งหมด</button>
+        </div>
+      </div>
+
+      <div className="data-table-wrap">
+        {filteredAdvances.length===0 ? (
+          <div className="empty-bill">ยังไม่มีรายการเบิกเงิน</div>
+        ) : (
+          <table className="data-table">
+            <thead><tr><th>วันที่</th><th>พนักงาน</th><th>จำนวนเงิน</th><th>หมายเหตุ</th><th></th></tr></thead>
+            <tbody>
+              {filteredAdvances.map(a=>(
+                <tr key={a.id}>
+                  <td>
+                    <input type="date" className="inline-input tabular" style={{maxWidth:130}}
+                      value={a.date} onChange={ev=>onUpdateAdvance(a.id,{date:ev.target.value||a.date})}/>
+                  </td>
+                  <td style={{fontWeight:700}}>
+                    {a.employeeName}
+                    {!employees.some(e=>e.id===a.employeeId) && (
+                      <div style={{fontSize:11,fontWeight:400,color:"var(--ink-faint)"}}>(ลบพนักงานนี้ออกจากระบบแล้ว)</div>
+                    )}
+                  </td>
+                  <td>
+                    <input className="inline-input tabular" type="number" min="0" step="50" style={{maxWidth:100,fontWeight:700,color:"var(--danger)"}}
+                      value={a.amount} onChange={ev=>onUpdateAdvance(a.id,{amount:parseFloat(ev.target.value)||0})}/>
+                  </td>
+                  <td>
+                    <input className="inline-input" style={{color:"var(--ink-muted)",fontSize:13}} value={a.note||""} placeholder="-"
+                      onChange={ev=>onUpdateAdvance(a.id,{note:ev.target.value})}/>
+                  </td>
+                  <td>
+                    <button className="icon-btn" title="ลบ" style={{color:"var(--danger)"}} onClick={()=>onDeleteAdvance(a.id)}>
+                      <Icon name="trash" size={16}/>
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+    </>
+  );
+}
+
+/* ============================= SETTINGS PAGE ============================= */
+const UI_SCALE_MIN = 0.8, UI_SCALE_MAX = 1.5, UI_SCALE_STEP = 0.1;
+
+function SettingsPage({settings, onUpdateSettings, dataDir, theme, setTheme, uiScale, setUiScale}){
+  const [storeName,setStoreName] = useState(settings.storeName);
+  const [saved,setSaved] = useState(false);
+  useEffect(()=>{ setStoreName(settings.storeName); },[settings.storeName]);
+
+  function saveStoreName(){
+    onUpdateSettings({storeName: storeName.trim() || DEFAULT_SETTINGS.storeName});
+    setSaved(true);
+    setTimeout(()=>setSaved(false), 1800);
+  }
+
+  return (
+    <>
+      <div className="page-header">
+        <div>
+          <div className="page-title">ตั้งค่า</div>
+          <div className="page-sub">ชื่อร้าน ตำแหน่งไฟล์ข้อมูล และการสำรองข้อมูลขึ้น Google Drive</div>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="fileText" size={13}/>ชื่อร้าน (แสดงบนใบเสร็จ)</div>
+        <div style={{display:"flex",gap:10,maxWidth:480,alignItems:"end",flexWrap:"wrap"}}>
+          <div className="field" style={{flex:"1 1 260px"}}>
+            <input className="input" value={storeName} onChange={e=>setStoreName(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") saveStoreName();}}/>
+          </div>
+          <button className="btn btn-primary" onClick={saveStoreName}>
+            <Icon name={saved?"check":"check"} size={16}/>{saved?"บันทึกแล้ว":"บันทึก"}
+          </button>
+        </div>
+      </div>
+
+      <div className="panel">
+        <div className="panel-title"><Icon name="eye" size={13}/>การแสดงผล (เฉพาะหน้าจอนี้ — ไม่มีผลกับเครื่องอื่น)</div>
+        <div className="field" style={{maxWidth:320}}>
+          <label>ธีม</label>
+          <div className="mode-toggle">
+            <button type="button" className={theme==="system"?"active":""} onClick={()=>setTheme("system")}>ตามระบบ</button>
+            <button type="button" className={theme==="light"?"active":""} onClick={()=>setTheme("light")}>สว่าง</button>
+            <button type="button" className={theme==="dark"?"active":""} onClick={()=>setTheme("dark")}>มืด</button>
+          </div>
+        </div>
+        <div className="field" style={{maxWidth:320,marginTop:14}}>
+          <label>ขนาดตัวอักษร/หน้าจอทั้งหมด — เผื่อผู้สูงอายุอ่านง่ายขึ้น</label>
+          <div style={{display:"flex",alignItems:"center",gap:8}}>
+            <button type="button" className="btn" disabled={uiScale<=UI_SCALE_MIN}
+              onClick={()=>setUiScale(Math.max(UI_SCALE_MIN, Math.round((uiScale-UI_SCALE_STEP)*10)/10))}>
+              <Icon name="x" size={14}/>เล็กลง
+            </button>
+            <div className="tabular" style={{minWidth:52,textAlign:"center",fontWeight:700,fontSize:15}}>{Math.round(uiScale*100)}%</div>
+            <button type="button" className="btn" disabled={uiScale>=UI_SCALE_MAX}
+              onClick={()=>setUiScale(Math.min(UI_SCALE_MAX, Math.round((uiScale+UI_SCALE_STEP)*10)/10))}>
+              <Icon name="plus" size={14}/>ใหญ่ขึ้น
+            </button>
+            {uiScale!==1 && (
+              <button type="button" className="btn btn-ghost" onClick={()=>setUiScale(1)}>รีเซ็ต</button>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {hasDesktop && (
+        <div className="panel">
+          <div className="panel-title"><Icon name="hardDrive" size={13}/>ตำแหน่งไฟล์ข้อมูล</div>
+          <div style={{fontSize:13.5,color:"var(--ink-muted)"}}>
+            ไฟล์ข้อมูล (JSON) และไฟล์ Excel รวม (scrap-pos-data.xlsx) ที่ซิงก์อัตโนมัติ เก็บอยู่ที่:
+          </div>
+          <div className="idcard-box" style={{marginTop:8}}>
+            <div className="tabular" style={{fontSize:13,wordBreak:"break-all"}}>{dataDir || "กำลังโหลด..."}</div>
+          </div>
+          <div style={{fontSize:13.5,color:"var(--ink-muted)",marginTop:10}}>
+            รายงานยอดขายแยกรายเดือน (จัดกลุ่มตามวันที่ พร้อมยอดรวมย่อยรายวัน) อยู่ในโฟลเดอร์ย่อย "รายงานรายเดือน":
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{marginTop:8,alignSelf:"flex-start"}}
+            onClick={()=>window.scrapAPI.openMonthlyFolder()}>
+            <Icon name="folder" size={15}/>เปิดโฟลเดอร์รายงานรายเดือน
+          </button>
+        </div>
+      )}
+
+      {hasDesktop && <DriveBackupCard/>}
+      {!hasDesktop && (
+        <div className="panel">
+          <div className="idcard-status muted">การตั้งค่าสำรองข้อมูล Google Drive ทำได้จากคอมหลักเท่านั้น</div>
+        </div>
+      )}
+    </>
+  );
+}
+
+function DriveBackupCard(){
+  const [status,setStatus] = useState(null);
+  const [clientId,setClientId] = useState("");
+  const [clientSecret,setClientSecret] = useState("");
+  const [busy,setBusy] = useState(false);
+  const [showSetup,setShowSetup] = useState(false);
+
+  function refreshStatus(){
+    window.scrapAPI.driveStatus().then(setStatus).catch(()=>{});
+  }
+  useEffect(()=>{ refreshStatus(); },[]);
+
+  async function saveCreds(){
+    if(!clientId.trim() || !clientSecret.trim()) return;
+    setBusy(true);
+    await window.scrapAPI.driveSetCredentials(clientId.trim(), clientSecret.trim());
+    setBusy(false);
+    setClientId(""); setClientSecret("");
+    refreshStatus();
+  }
+  async function connect(){
+    setBusy(true);
+    const res = await window.scrapAPI.driveConnect();
+    setBusy(false);
+    refreshStatus();
+    return res;
+  }
+  async function disconnect(){
+    if(!window.confirm("ยกเลิกการเชื่อมต่อ Google Drive?")) return;
+    await window.scrapAPI.driveDisconnect();
+    refreshStatus();
+  }
+  async function backupNow(){
+    setBusy(true);
+    await window.scrapAPI.driveBackupNow();
+    setBusy(false);
+    refreshStatus();
+  }
+
+  if(!status) return (
+    <div className="drive-card"><div className="idcard-status muted">กำลังโหลดสถานะ...</div></div>
+  );
+
+  return (
+    <div className="drive-card">
+      <div className="panel-title" style={{marginBottom:0}}><Icon name="cloud" size={14}/>สำรองข้อมูลขึ้น Google Drive</div>
+
+      <div className="drive-status-row">
+        <span className={"drive-dot "+(status.connected?"on":"")}/>
+        <span style={{fontSize:14.5,fontWeight:600}}>
+          {status.connected ? `เชื่อมต่อแล้ว — ${status.email}` : "ยังไม่ได้เชื่อมต่อ"}
+        </span>
+      </div>
+      {status.lastBackupAt && (
+        <div style={{fontSize:12.5,color:"var(--ink-muted)"}}>สำรองข้อมูลล่าสุด: {fmtDateTime(status.lastBackupAt)}</div>
+      )}
+
+      {!status.hasCredentials && (
+        <>
+          <div className="idcard-status muted">
+            ต้องตั้งค่า Client ID / Client Secret จาก Google Cloud Console ก่อน (ทำครั้งเดียว)
+          </div>
+          <button className="btn btn-ghost btn-sm" style={{alignSelf:"flex-start"}} onClick={()=>setShowSetup(s=>!s)}>
+            <Icon name="eye" size={14}/>{showSetup?"ซ่อนวิธีตั้งค่า":"ดูวิธีตั้งค่า"}
+          </button>
+          {showSetup && (
+            <div className="setup-steps">
+              1. เปิด <b>console.cloud.google.com</b> แล้วสร้างโปรเจกต์ใหม่ (หรือใช้โปรเจกต์เดิม)<br/>
+              2. เมนู <b>APIs &amp; Services → Library</b> ค้นหา "Google Drive API" แล้วกด Enable<br/>
+              3. เมนู <b>APIs &amp; Services → OAuth consent screen</b> เลือก External แล้วกรอกชื่อแอปพอผ่าน<br/>
+              4. เมนู <b>APIs &amp; Services → Credentials → Create Credentials → OAuth client ID</b><br/>
+              5. เลือกประเภท <b>Desktop app</b> ตั้งชื่ออะไรก็ได้ แล้วกด Create<br/>
+              6. คัดลอก <b>Client ID</b> และ <b>Client Secret</b> มาใส่ในช่องด้านล่าง
+            </div>
+          )}
+          <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+            <input className="input" style={{flex:"1 1 220px"}} placeholder="Client ID" value={clientId} onChange={e=>setClientId(e.target.value)}/>
+            <input className="input" style={{flex:"1 1 220px"}} placeholder="Client Secret" type="password" value={clientSecret} onChange={e=>setClientSecret(e.target.value)}/>
+            <button className="btn btn-primary" disabled={busy} onClick={saveCreds}>บันทึก</button>
+          </div>
+        </>
+      )}
+
+      {status.hasCredentials && !status.connected && (
+        <button className="btn btn-primary" disabled={busy} onClick={connect}>
+          <Icon name="cloud" size={16}/>{busy?"กำลังเชื่อมต่อ...":"เชื่อมต่อ Google Drive"}
+        </button>
+      )}
+
+      {status.connected && (
+        <div style={{display:"flex",gap:8,flexWrap:"wrap"}}>
+          <button className="btn btn-primary" disabled={busy} onClick={backupNow}>
+            <Icon name="refresh" size={16}/>{busy?"กำลังสำรองข้อมูล...":"สำรองข้อมูลตอนนี้"}
+          </button>
+          <button className="btn btn-ghost" onClick={disconnect}><Icon name="unlink" size={15}/>ยกเลิกการเชื่อมต่อ</button>
+        </div>
+      )}
+      <div style={{fontSize:11.5,color:"var(--ink-faint)"}}>
+        สำรองข้อมูลอัตโนมัติทุก 15 นาทีเมื่อมีการเปลี่ยนแปลง และหลังบันทึกข้อมูลทุกครั้งจะรออัปโหลดภายใน 30 วินาที
+      </div>
+    </div>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById("root")).render(<App/>);
+</script>
+</body>
+</html>
