@@ -1,6 +1,6 @@
 {
   "name": "scrap-shop-pos",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "ระบบรับซื้อของเก่า - โปรแกรม POS สำหรับร้านรับซื้อของเก่า",
   "main": "main.js",
   "author": "ระบบ POS ค้าของเก่า by.leolung",
@@ -36,7 +36,8 @@
     "publish": {
       "provider": "github",
       "owner": "LEoLunG-ui",
-      "repo": "scrap-shop-pos"
+      "repo": "scrap-shop-pos",
+      "draft": false
     },
     "win": {
       "target": [
