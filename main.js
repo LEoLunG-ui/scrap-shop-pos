@@ -876,6 +876,15 @@ ipcMain.handle("data:save", (_e, data) => {
   saveDataSync(data);
   return true;
 });
+ipcMain.handle("data:saveLocal", (_e, localData) => {
+  // บันทึกเฉพาะ draft/heldBills (ข้อมูลที่ยังไม่ผ่าน WebSocket) โดยอ่านไฟล์ล่าสุดจากดิสก์ก่อนแล้วค่อยแก้เฉพาะสองฟิลด์นี้
+  // เพื่อไม่ให้ไปทับข้อมูล customers/catalog/bills ฯลฯ ที่อาจถูกอัปเดตผ่าน WebSocket ไปแล้วแต่ state ฝั่ง renderer ยังไม่ทันอัปเดตตาม
+  const data = loadDataSync() || {};
+  data.draft = localData.draft;
+  data.heldBills = localData.heldBills;
+  saveDataSync(data);
+  return true;
+});
 ipcMain.handle("csv:export", async (_e, { filename, content }) => {
   const { canceled, filePath } = await dialog.showSaveDialog(mainWindow, {
     title: "บันทึกไฟล์ CSV",
@@ -892,7 +901,12 @@ ipcMain.handle("print:receipt", (_e, mmWidth) => {
   const widthMicrons = (Number(mmWidth) || 80) * 1000;
   mainWindow.webContents.print(
     {
-      silent: false,
+      // silent:true — ตอน silent:false เดิม เครื่องพิมพ์จะเด้งกล่องโต้ตอบของ Windows ขึ้นมาทุกครั้ง
+      // ซึ่งกล่องนั้นใช้ "จำนวนชุด" ของตัวเองที่เคยตั้งไว้ก่อนหน้า (อาจยังเป็น 2 ค้างอยู่) แทนค่า
+      // copies ที่โปรแกรมส่งไป ทำให้กดพิมพ์ 1 ใบแต่ได้ 2 ใบจริง — เปลี่ยนเป็นพิมพ์ตรงไม่ผ่านกล่อง
+      // โต้ตอบ รับประกันว่าจำนวนชุดตรงกับที่ตั้งไว้ในโค้ดเสมอ (ใช้เครื่องพิมพ์ที่ตั้งเป็นค่าเริ่มต้น
+      // ของ Windows) และยังเร็วขึ้นด้วยเพราะไม่ต้องกดยืนยันกล่องโต้ตอบทุกครั้ง
+      silent: true,
       printBackground: true,
       copies: 1,
       collate: true,

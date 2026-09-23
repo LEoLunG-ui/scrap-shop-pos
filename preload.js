@@ -4,6 +4,7 @@ contextBridge.exposeInMainWorld("scrapAPI", {
   loadDataSync: () => ipcRenderer.sendSync("data:loadSync"),
   loadData: () => ipcRenderer.invoke("data:load"),
   saveData: (data) => ipcRenderer.invoke("data:save", data),
+  saveLocalDraft: (localData) => ipcRenderer.invoke("data:saveLocal", localData),
   exportCSV: (filename, content) => ipcRenderer.invoke("csv:export", { filename, content }),
   dataDir: () => ipcRenderer.invoke("app:dataDir"),
   openMonthlyFolder: () => ipcRenderer.invoke("app:openMonthlyFolder"),

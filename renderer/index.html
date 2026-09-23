@@ -614,6 +614,15 @@ function persistData(data){
     try{ localStorage.setItem(LS_KEY, JSON.stringify(data)); }catch(e){}
   }
 }
+// บันทึกเฉพาะ draft/heldBills แบบ merge เข้ากับไฟล์ล่าสุดบนดิสก์ (ไม่ทับทั้งก้อน) ใช้เฉพาะโหมด desktop
+// เพราะ customers/catalog/bills ฯลฯ ถูกซิงก์ผ่าน WebSocket mutation อยู่แล้ว ถ้ายังใช้ persistData() (เซฟทั้งก้อน)
+// แบบเดิมทุกครั้งที่ state เปลี่ยน จะมีโอกาสที่ state ฝั่ง renderer เป็นข้อมูลเก่า (เช่น ตอนเพิ่งเปิดโปรแกรม
+// ก่อน WebSocket ต่อสำเร็จ) แล้วไปทับไฟล์จริงที่เพิ่งถูกลบข้อมูลไปผ่านเครื่องอื่น ทำให้ข้อมูลที่ลบแล้วฟื้นกลับมา
+function persistLocalDraft(draft, heldBills){
+  if(hasDesktop && window.scrapAPI.saveLocalDraft){
+    window.scrapAPI.saveLocalDraft({ draft, heldBills }).catch(()=>{});
+  }
+}
 
 // ธีม (มืด/สว่าง) และขนาดตัวอักษร เป็นการตั้งค่าเฉพาะเครื่อง/หน้าจอนี้เท่านั้น (ไม่ซิงก์ข้ามอุปกรณ์
 // ผ่าน LAN เหมือนข้อมูลร้าน เพราะแต่ละจออาจอยู่คนละที่ คนละสภาพแสง หรือผู้ใช้คนละคน) — เก็บใน
@@ -846,6 +855,7 @@ function App(){
   const [updateInfo,setUpdateInfo] = useState(null);
   const [updateCheckStatus,setUpdateCheckStatus] = useState(null); // สถานะชั่วคราว ใช้โชว์ตอนกด "เช็คอัปเดตตอนนี้" ในหน้าตั้งค่า
   const wsRef = useRef(null);
+  const wsQueueRef = useRef([]);
 
   const {toasts, push} = useToasts();
 
@@ -869,8 +879,14 @@ function App(){
   }
 
   useEffect(()=>{
+    if(hasDesktop) return;
     persistData({ customers, catalog, categories, bills, extraIncome, employees, advances, settings, draft:{customerId:selectedCustomerId, items:billItems, walkInNickname, walkInLicensePlate}, heldBills });
   },[customers, catalog, categories, bills, extraIncome, employees, advances, settings, selectedCustomerId, billItems, heldBills, walkInNickname, walkInLicensePlate]);
+
+  useEffect(()=>{
+    if(!hasDesktop) return;
+    persistLocalDraft({customerId:selectedCustomerId, items:billItems, walkInNickname, walkInLicensePlate}, heldBills);
+  },[selectedCustomerId, billItems, heldBills, walkInNickname, walkInLicensePlate]);
 
   function setTheme(v){ setThemeState(v); saveLocalTheme(v); }
   function setUiScale(v){ setUiScaleState(v); saveLocalUiScale(v); }
@@ -904,7 +920,15 @@ function App(){
       try{ socket = new WebSocket(`ws://${location.host}/ws`); }
       catch(e){ if(alive) setNetStatus("offline"); return; }
       wsRef.current = socket;
-      socket.onopen = ()=>{ if(alive) setNetStatus("online"); };
+      socket.onopen = ()=>{
+        if(!alive) return;
+        setNetStatus("online");
+        // ส่งข้อความที่ค้างคิวไว้ตอนยังไม่ต่อ WebSocket สำเร็จ (เช่น ตอนเพิ่งเปิดโปรแกรม) ให้ครบ
+        // ป้องกันกรณีลบ/แก้ข้อมูลไปแล้วแต่ WebSocket ยังไม่ทันต่อ ทำให้การเปลี่ยนแปลงหายไปเงียบๆ
+        const queued = wsQueueRef.current;
+        wsQueueRef.current = [];
+        queued.forEach(m=>{ try{ socket.send(JSON.stringify(m)); }catch(e){} });
+      };
       socket.onmessage = (ev)=>{
         if(!alive) return;
         try{
@@ -935,6 +959,9 @@ function App(){
   function wsSend(msg){
     const s = wsRef.current;
     if(s && s.readyState===1){ s.send(JSON.stringify(msg)); return true; }
+    // ยังต่อ WebSocket ไม่สำเร็จ (เช่น เพิ่งเปิดโปรแกรม) — ค้างไว้ในคิวแล้วส่งให้อัตโนมัติทันทีที่ต่อสำเร็จ
+    // แทนที่จะปล่อยให้การเปลี่ยนแปลง (เช่น การลบ) หายไปเงียบๆ
+    wsQueueRef.current.push(msg);
     return false;
   }
 
