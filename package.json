@@ -1,6 +1,6 @@
 {
   "name": "scrap-shop-pos",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "ระบบรับซื้อของเก่า - โปรแกรม POS สำหรับร้านรับซื้อของเก่า",
   "main": "main.js",
   "author": "ระบบ POS ค้าของเก่า by.leolung",
@@ -22,7 +22,8 @@
     "files": [
       "main.js",
       "preload.js",
-      "renderer/**/*"
+      "renderer/**/*",
+      "build/icon.ico"
     ],
     "extraResources": [
       {
@@ -40,6 +41,7 @@
       "releaseType": "release"
     },
     "win": {
+      "icon": "build/icon.ico",
       "target": [
         {
           "target": "nsis",
