@@ -2514,7 +2514,21 @@ function groupReceiptItems(items){
 
 async function printReceipt(mmWidth){
   if(hasDesktop){
-    try{ await window.scrapAPI.printReceipt(mmWidth); return; }catch(e){}
+    // การขยายตัวอักษรทั้งโปรแกรม (ตั้งค่า > การแสดงผล เผื่อผู้สูงอายุ) ใช้ document.documentElement.style.zoom
+    // ซึ่งมีผลกับทุกอย่างที่วาดบนหน้าจอ รวมถึงใบเสร็จตอนสั่งพิมพ์ด้วย ทำให้ขนาดใบเสร็จที่พิมพ์ออกมาจริง
+    // ไม่ตรงกับ 78mm/80mm ที่กำหนดไว้ ถ้าเครื่องนั้นตั้งขยายตัวอักษรไว้ — ก่อนพิมพ์จึงต้องปิด zoom ชั่วคราว
+    // ให้เหลือ 1 แล้วค่อยคืนค่ากลับหลังพิมพ์เสร็จ เพื่อให้ขนาดจริงบนกระดาษคงที่เสมอไม่ว่าจะตั้งขยายตัวอักษรไว้เท่าไร
+    const prevZoom = document.documentElement.style.zoom;
+    const zoomChanged = prevZoom !== "1" && prevZoom !== "";
+    if(zoomChanged){
+      document.documentElement.style.zoom = "1";
+      await new Promise(r=>setTimeout(r, 60));
+    }
+    try{ await window.scrapAPI.printReceipt(mmWidth); }catch(e){}
+    if(zoomChanged){
+      setTimeout(()=>{ document.documentElement.style.zoom = prevZoom; }, 500);
+    }
+    return;
   }
   window.print();
 }
