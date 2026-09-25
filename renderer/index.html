@@ -1079,10 +1079,14 @@ function App(){
     if(editingId){
       setBillItems(list=>list.map(l=> l.id===editingId ? newLine : l));
       push("บันทึกการแก้ไขรอบนี้แล้ว","ok");
+      resetWeighForm();
     } else {
       setBillItems(list=>[...list, newLine]);
+      // ชั่งสินค้าตัวเดิมต่อได้เลย ไม่ต้องเลือกใหม่ทุกครั้ง (เช่น ชั่งขวดเบียร์หลายรอบติดกัน)
+      // ล้างเฉพาะน้ำหนัก/จำนวนที่กรอกไว้ กับราคาที่ override ไว้ กลับเป็นราคาเริ่มต้นของสินค้านี้
+      setGross(""); setTare("0"); setDeductPct("0"); setQty("");
+      setPriceOverride(String(priceOf(activeItem, priceMode)));
     }
-    resetWeighForm();
   }
 
   // แก้ไขแบบไม่ทำลายข้อมูล: ยังไม่ลบรายการเดิมออกจนกว่าจะกด "บันทึกการแก้ไข" —

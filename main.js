@@ -131,17 +131,37 @@ function seedDefaultsIfMissing() {
   data.bills = data.bills || [];
 
   let changed = isFirstRun;
+
+  // เดิมเช็คแค่ "id นี้ยังไม่มีอยู่ใน categories/catalog ตอนนี้" ซึ่งแยกไม่ออกระหว่าง "ยังไม่เคยเติม"
+  // กับ "ผู้ใช้ลบไปแล้ว" ทำให้สินค้า/หมวดหมู่เริ่มต้นที่ลบไปแล้วฟื้นกลับมาทุกครั้งที่เปิดโปรแกรมใหม่
+  // แก้โดยจำ id ที่เคยเติมไปแล้วไว้ใน seededCategoryIds/seededCatalogIds — เติมเฉพาะ id ที่ไม่เคยเติมมาก่อนเท่านั้น
+  // (เครื่องเก่าที่ยังไม่มีฟิลด์นี้ ถือว่า default ทุกตัวที่มีอยู่ ณ ตอนอัปเดตนี้ "เคยเติมแล้ว" ทั้งหมด
+  // ไม่ว่าจะยังอยู่ในระบบหรือถูกลบไปก่อนหน้านี้ก็ตาม ป้องกันของที่ลบไปแล้วฟื้นกลับมาอีกรอบตอนอัปเดต —
+  // ยกเว้นเครื่องใหม่ที่เพิ่งเปิดโปรแกรมครั้งแรก (isFirstRun) จะเริ่มจากว่างเปล่าให้เติมเข้าไปตามปกติ)
+  if (!data.seededCategoryIds) {
+    data.seededCategoryIds = isFirstRun ? [] : DEFAULT_CATEGORIES.map((c) => c.id);
+    changed = true;
+  }
+  if (!data.seededCatalogIds) {
+    data.seededCatalogIds = isFirstRun ? [] : DEFAULT_CATALOG.map((i) => i.id);
+    changed = true;
+  }
+
   const existingCatIds = new Set(data.categories.map((c) => c.id));
+  const seededCatIds = new Set(data.seededCategoryIds);
   DEFAULT_CATEGORIES.forEach((c) => {
-    if (!existingCatIds.has(c.id)) {
+    if (!existingCatIds.has(c.id) && !seededCatIds.has(c.id)) {
       data.categories.push(c);
+      data.seededCategoryIds.push(c.id);
       changed = true;
     }
   });
   const existingItemIds = new Set(data.catalog.map((i) => i.id));
+  const seededItemIds = new Set(data.seededCatalogIds);
   DEFAULT_CATALOG.forEach((i) => {
-    if (!existingItemIds.has(i.id)) {
+    if (!existingItemIds.has(i.id) && !seededItemIds.has(i.id)) {
       data.catalog.push(i);
+      data.seededCatalogIds.push(i.id);
       changed = true;
     }
   });
