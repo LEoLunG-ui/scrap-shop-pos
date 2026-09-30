@@ -304,6 +304,8 @@ html.ui-scaled .pane{max-height:none;overflow:visible;}
 .mode-toggle button{flex:1;padding:8px 6px;font-size:12.5px;font-weight:600;background:var(--surface-2);border:none;cursor:pointer;color:var(--ink-muted);}
 .mode-toggle button:not(:last-child){border-right:1px solid var(--border-strong);}
 .mode-toggle button.active{background:var(--accent);color:var(--accent-ink);}
+.mode-toggle.nowrap{flex:0 0 auto;max-width:100%;overflow-x:auto;}
+.mode-toggle.nowrap button{white-space:nowrap;padding:8px 12px;}
 .mode-hint{font-size:11px;color:var(--ink-faint);margin-top:5px;}
 
 /* repeat warning */
@@ -2665,11 +2667,54 @@ function BillRow({b, isOpen, onToggle, onReprint, onDeleteBill, onEditBill, colS
   );
 }
 
+function groupBillsBy(list, keyOf){
+  const map = new Map();
+  list.forEach(b=>{
+    const k = keyOf(b);
+    if(!map.has(k)) map.set(k, []);
+    map.get(k).push(b);
+  });
+  return Array.from(map.entries()).map(([key,items])=>{
+    const sorted = items.slice().sort((a,b)=>b.date.localeCompare(a.date));
+    return {
+      key, bills: sorted,
+      count: sorted.length,
+      weight: sorted.reduce((s,b)=>s+billStats(b).weight,0),
+      amount: sorted.reduce((s,b)=>s+billStats(b).amount,0),
+    };
+  }).sort((a,b)=>b.key.localeCompare(a.key));
+}
+const dayKeyOf = b => b.date.slice(0,10);
+const yearKeyOf = b => b.date.slice(0,4);
+function fmtYearLabel(yearKey){
+  return new Date(Number(yearKey), 0, 1).toLocaleDateString("th-TH",{year:"numeric"});
+}
+
+function SummarySubTable({groups, labelOf, keyHeader}){
+  return (
+    <table className="data-table" style={{background:"transparent"}}>
+      <thead><tr><th>{keyHeader}</th><th>จำนวนบิล</th><th>น้ำหนักรวม</th><th>ยอดเงินรวม</th></tr></thead>
+      <tbody>
+        {groups.map(g=>(
+          <tr key={g.key}>
+            <td className="tabular">{labelOf(g.key)}</td>
+            <td className="tabular">{g.count}</td>
+            <td className="tabular">{kg(g.weight)} กก.</td>
+            <td className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(g.amount)} ฿</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+}
+
 function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
-  const [scope,setScope] = useState("today"); // today | all | daily
+  const [scope,setScope] = useState("today"); // today | all | daily | monthly | yearly
   const [search,setSearch] = useState("");
   const [expandedId,setExpandedId] = useState(null);
-  const [expandedDay,setExpandedDay] = useState(null);
+  const [expandedGroup,setExpandedGroup] = useState(null);
+
+  function changeScope(s){ setScope(s); setExpandedGroup(null); }
 
   const searchFiltered = useMemo(()=>{
     const q = search.trim().toLowerCase();
@@ -2683,26 +2728,17 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
     return list.slice().sort((a,b)=>b.date.localeCompare(a.date));
   },[searchFiltered, scope]);
 
-  const dailyGroups = useMemo(()=>{
-    const map = new Map();
-    searchFiltered.forEach(b=>{
-      const d = b.date.slice(0,10);
-      if(!map.has(d)) map.set(d, []);
-      map.get(d).push(b);
-    });
-    return Array.from(map.entries()).map(([date,list])=>{
-      const dayBills = list.slice().sort((a,b)=>b.date.localeCompare(a.date));
-      return {
-        date, bills: dayBills,
-        count: dayBills.length,
-        weight: dayBills.reduce((s,b)=>s+billStats(b).weight,0),
-        amount: dayBills.reduce((s,b)=>s+billStats(b).amount,0),
-      };
-    }).sort((a,b)=>b.date.localeCompare(a.date));
-  },[searchFiltered]);
+  const isSummary = scope==="daily" || scope==="monthly" || scope==="yearly";
+  const summaryGroups = useMemo(()=>{
+    if(scope==="daily") return groupBillsBy(searchFiltered, dayKeyOf);
+    if(scope==="monthly") return groupBillsBy(searchFiltered, b=>monthKeyOf(b.date));
+    if(scope==="yearly") return groupBillsBy(searchFiltered, yearKeyOf);
+    return [];
+  },[searchFiltered, scope]);
+  const summaryLabelOf = scope==="monthly" ? fmtMonthLabel : scope==="yearly" ? fmtYearLabel : fmtDateOnlyTH;
+  const summaryHeader = scope==="monthly" ? "เดือน" : scope==="yearly" ? "ปี" : "วันที่";
 
-  const isDaily = scope==="daily";
-  const statsSource = isDaily ? searchFiltered : filtered;
+  const statsSource = isSummary ? searchFiltered : filtered;
   const totalAmount = statsSource.reduce((s,b)=>s+billStats(b).amount,0);
   const totalWeight = statsSource.reduce((s,b)=>s+billStats(b).weight,0);
 
@@ -2711,7 +2747,7 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
       <div className="page-header">
         <div>
           <div className="page-title">ประวัติการขาย</div>
-          <div className="page-sub">ดูรายละเอียดหรือยกเลิกบิลย้อนหลังได้ที่นี่ — ดูยอดรวมย้อนหลังแยกรายวันได้ที่แท็บ "สรุปรายวัน"</div>
+          <div className="page-sub">ดูรายละเอียดหรือยกเลิกบิลย้อนหลังได้ที่นี่ — ดูยอดรวมย้อนหลังได้ที่แท็บ "สรุปรายวัน" "สรุปรายเดือน" และ "สรุปรายปี"</div>
         </div>
       </div>
 
@@ -2732,10 +2768,12 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
 
       <div className="panel">
         <div style={{display:"flex",gap:10,flexWrap:"wrap",alignItems:"center"}}>
-          <div className="mode-toggle" style={{maxWidth:320}}>
-            <button type="button" className={scope==="today"?"active":""} onClick={()=>setScope("today")}>วันนี้</button>
-            <button type="button" className={scope==="all"?"active":""} onClick={()=>setScope("all")}>ทั้งหมด</button>
-            <button type="button" className={scope==="daily"?"active":""} onClick={()=>setScope("daily")}>สรุปรายวัน</button>
+          <div className="mode-toggle nowrap">
+            <button type="button" className={scope==="today"?"active":""} onClick={()=>changeScope("today")}>วันนี้</button>
+            <button type="button" className={scope==="all"?"active":""} onClick={()=>changeScope("all")}>ทั้งหมด</button>
+            <button type="button" className={scope==="daily"?"active":""} onClick={()=>changeScope("daily")}>สรุปรายวัน</button>
+            <button type="button" className={scope==="monthly"?"active":""} onClick={()=>changeScope("monthly")}>สรุปรายเดือน</button>
+            <button type="button" className={scope==="yearly"?"active":""} onClick={()=>changeScope("yearly")}>สรุปรายปี</button>
           </div>
           <div className="input-wrap" style={{flex:"1 1 220px"}}>
             <span className="search-icon"><Icon name="search" size={15}/></span>
@@ -2744,23 +2782,23 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
         </div>
       </div>
 
-      {isDaily ? (
+      {isSummary ? (
         <div className="data-table-wrap">
-          {dailyGroups.length===0 ? (
+          {summaryGroups.length===0 ? (
             <div className="empty-bill">ไม่มีบิลที่ตรงกับเงื่อนไข</div>
           ) : (
             <table className="data-table">
-              <thead><tr><th>วันที่</th><th>จำนวนบิล</th><th>น้ำหนักรวม</th><th>ยอดเงินรวม</th></tr></thead>
+              <thead><tr><th>{summaryHeader}</th><th>จำนวนบิล</th><th>น้ำหนักรวม</th><th>ยอดเงินรวม</th></tr></thead>
               <tbody>
-                {dailyGroups.map(g=>{
-                  const isOpen = expandedDay===g.date;
+                {summaryGroups.map(g=>{
+                  const isOpen = expandedGroup===g.key;
                   return (
-                    <React.Fragment key={g.date}>
-                      <tr style={{cursor:"pointer"}} onClick={()=>setExpandedDay(isOpen?null:g.date)}>
+                    <React.Fragment key={g.key}>
+                      <tr style={{cursor:"pointer"}} onClick={()=>setExpandedGroup(isOpen?null:g.key)}>
                         <td className="tabular">
                           <span style={{display:"inline-flex",alignItems:"center",gap:6}}>
                             <Icon name="chevronRight" size={13} className={"group-chevron "+(isOpen?"open":"")}/>
-                            {fmtDateOnlyTH(g.date)}
+                            {summaryLabelOf(g.key)}
                           </span>
                         </td>
                         <td className="tabular">{g.count}</td>
@@ -2770,18 +2808,24 @@ function HistoryPage({bills, onDeleteBill, onReprint, onEditBill}){
                       {isOpen && (
                         <tr>
                           <td colSpan={4} style={{background:"var(--bg-2)",padding:"10px 14px"}}>
-                            <table className="data-table" style={{background:"transparent"}}>
-                              <thead><tr>
-                                <th>เลขที่</th><th>วันที่เวลา</th><th>ลูกค้า</th><th>น้ำหนักรวม</th><th>ยอดเงิน</th><th></th>
-                              </tr></thead>
-                              <tbody>
-                                {g.bills.map(b=>(
-                                  <BillRow key={b.id} b={b} isOpen={expandedId===b.id}
-                                    onToggle={()=>setExpandedId(expandedId===b.id?null:b.id)}
-                                    onReprint={onReprint} onDeleteBill={onDeleteBill} onEditBill={onEditBill} colSpan={6}/>
-                                ))}
-                              </tbody>
-                            </table>
+                            {scope==="monthly" ? (
+                              <SummarySubTable groups={groupBillsBy(g.bills, dayKeyOf)} labelOf={fmtDateOnlyTH} keyHeader="วันที่"/>
+                            ) : scope==="yearly" ? (
+                              <SummarySubTable groups={groupBillsBy(g.bills, b=>monthKeyOf(b.date))} labelOf={fmtMonthLabel} keyHeader="เดือน"/>
+                            ) : (
+                              <table className="data-table" style={{background:"transparent"}}>
+                                <thead><tr>
+                                  <th>เลขที่</th><th>วันที่เวลา</th><th>ลูกค้า</th><th>น้ำหนักรวม</th><th>ยอดเงิน</th><th></th>
+                                </tr></thead>
+                                <tbody>
+                                  {g.bills.map(b=>(
+                                    <BillRow key={b.id} b={b} isOpen={expandedId===b.id}
+                                      onToggle={()=>setExpandedId(expandedId===b.id?null:b.id)}
+                                      onReprint={onReprint} onDeleteBill={onDeleteBill} onEditBill={onEditBill} colSpan={6}/>
+                                  ))}
+                                </tbody>
+                              </table>
+                            )}
                           </td>
                         </tr>
                       )}
