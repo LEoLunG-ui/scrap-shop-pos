@@ -449,10 +449,15 @@ table.bill-table tr.sub-row.editing td{background:var(--accent-soft);}
 .receipt .r-customer{text-align:center;font-size:calc(21px * var(--r-scale));margin-top:3px;}
 .receipt .r-meta{text-align:center;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:calc(17px * var(--r-scale));color:#000;margin-top:2px;}
 .receipt table{width:100%;max-width:100%;border-collapse:collapse;table-layout:fixed;font-size:calc(18.7px * var(--r-scale));margin-top:4px;}
-.receipt th{text-align:center;font-family:'Chakra Petch',sans-serif;padding-bottom:4px;border-bottom:2px solid #000;overflow-wrap:break-word;}
+.receipt th{text-align:center;font-family:'Chakra Petch',sans-serif;padding:0 4px 4px;border-bottom:2px solid #000;overflow-wrap:break-word;}
+/* ตัวเลขยอดสูงๆ (หลักหมื่น) เคยชิดกันจนอ่านไม่ออก — เว้นช่องไฟซ้ายขวาทุกช่อง และให้ช่อง "รวม" กว้างสุด */
+.receipt th:nth-child(1){width:27%;}
+.receipt th:nth-child(2){width:22%;}
+.receipt th:nth-child(3){width:19%;}
+.receipt th:nth-child(4){width:32%;}
 .receipt th:first-child, .receipt td:first-child{text-align:center;overflow-wrap:break-word;}
 .receipt th:first-child{font-family:'IBM Plex Sans Thai',sans-serif;}
-.receipt td{padding:6px 0;text-align:right;vertical-align:top;overflow-wrap:break-word;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;}
+.receipt td{padding:6px 4px;text-align:right;vertical-align:top;overflow-wrap:break-word;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;}
 .receipt td:first-child{font-family:'IBM Plex Sans Thai',sans-serif;text-align:center;}
 .receipt .r-total{display:flex;justify-content:space-between;font-family:'IBM Plex Sans Thai',sans-serif;font-variant-numeric:tabular-nums;font-size:calc(28px * var(--r-scale));margin-top:6px;}
 .receipt .r-line{display:flex;justify-content:space-between;font-size:calc(17px * var(--r-scale));}
@@ -1195,7 +1200,7 @@ function App(){
     setBills(list=>[...list, bill]);
     wsSend({type:"addBill", bill});
     setLastBill(bill);
-    setReceiptPrintWidthMm(98);
+    setReceiptPrintWidthMm(104);
     setReceiptFontScale(0.88);
     setShowReceipt(true);
     setBillItems([]);
@@ -1367,7 +1372,11 @@ function App(){
 
   // บันทึกรายรับเสริม 1 บิล อาจมีได้หลายรายการ (เช่น ขายขวดน้ำ + ถุงพลาสติก ในบิลเดียวกัน)
   function addIncome(data){
-    const lineItems = data.items.map(it=>({ id:uid(), description:it.description.trim(), amount:it.amount }));
+    const lineItems = data.items.map(it=>{
+      const li = { id:uid(), description:it.description.trim(), amount:it.amount };
+      if(it.qty>0 && it.price>0){ li.qty = it.qty; li.unit = it.unit; li.price = it.price; }
+      return li;
+    });
     const amount = lineItems.reduce((s,it)=>s+it.amount,0);
     const item = { id:uid(), no: extraIncome.length+1, date:data.date, items:lineItems, amount, createdAt:new Date().toISOString() };
     setExtraIncome(list=>[item, ...list]);
@@ -1393,10 +1402,15 @@ function App(){
       customerName: "ลูกค้าทั่วไป",
       customerPhone: "",
       customerType: null,
-      items: lineItems.map(li => ({
-        id: li.id, itemId: li.id, name: li.description, category: null,
-        mode: "unit", unit: "รายการ", qty: 1, price: li.amount, priceMode: "regular", amount: li.amount,
-      })),
+      items: lineItems.map(li => {
+        const base = { id: li.id, itemId: li.id, name: li.description, category: null, priceMode: "regular", amount: li.amount };
+        if(li.qty>0 && li.price>0){
+          return li.unit==="กก."
+            ? { ...base, mode: "weight", unit: li.unit, net: li.qty, price: li.price }
+            : { ...base, mode: "unit", unit: li.unit, qty: li.qty, price: li.price };
+        }
+        return { ...base, mode: "unit", unit: "รายการ", qty: 1, price: li.amount };
+      }),
     };
     setLastBill(bill);
     setReceiptPrintWidthMm(70);
@@ -3116,20 +3130,37 @@ function FinanceSummary({bills, extraIncome, advances}){
 }
 
 /* ============================= INCOME PAGE ============================= */
+const INCOME_UNITS = ["กก.", "ชิ้น"];
+function incomeLineDetail(li){
+  if(!(li.qty>0 && li.price>0)) return null;
+  const q = (Number(li.qty)||0).toLocaleString("th-TH",{maximumFractionDigits:2});
+  return `${q} ${li.unit} × ${money(li.price)} ฿`;
+}
+
 function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, onIssueReceipt}){
   const [date,setDate] = useState(todayKey());
   const [description,setDescription] = useState("");
+  const [qty,setQty] = useState("");
+  const [unit,setUnit] = useState(INCOME_UNITS[0]);
+  const [price,setPrice] = useState("");
   const [amount,setAmount] = useState("");
   const [pendingItems,setPendingItems] = useState([]); // รายการที่กำลังเพิ่ม ยังไม่บันทึกเป็นบิล
   const [scope,setScope] = useState("today");
   const [expandedId,setExpandedId] = useState(null);
   const descRef = useRef(null);
 
+  // กรอกจำนวน × ราคา แล้วคิดยอดให้อัตโนมัติ (จะได้รู้ที่มาของยอด) — ถ้าไม่กรอกสองช่องนี้ก็พิมพ์ยอดเงินเองได้เหมือนเดิม
+  const qtyNum = parseFloat(qty)||0;
+  const priceNum = parseFloat(price)||0;
+  const useQtyPrice = qtyNum>0 && priceNum>0;
+  const lineAmount = useQtyPrice ? Math.round(qtyNum*priceNum*100)/100 : (parseFloat(amount)||0);
+
   function addPendingItem(){
-    const amt = parseFloat(amount)||0;
-    if(!description.trim() || amt<=0) return;
-    setPendingItems(list=>[...list, {id:uid(), description:description.trim(), amount:amt}]);
-    setDescription(""); setAmount("");
+    if(!description.trim() || lineAmount<=0) return;
+    const item = {id:uid(), description:description.trim(), amount:lineAmount};
+    if(useQtyPrice){ item.qty = qtyNum; item.unit = unit; item.price = priceNum; }
+    setPendingItems(list=>[...list, item]);
+    setDescription(""); setQty(""); setPrice(""); setAmount("");
     if(descRef.current) descRef.current.focus();
   }
   function removePendingItem(id){
@@ -3169,8 +3200,23 @@ function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, 
           <div className="field" style={{flex:"2 1 220px"}}><label>รายการ</label>
             <input ref={descRef} className="input" value={description} onChange={e=>setDescription(e.target.value)} placeholder="เช่น ขายขวดน้ำ, ขายเศษพลาสติกให้ลูกค้าเดินผ่าน" onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
           </div>
+          <div className="field" style={{flex:"1 1 90px"}}><label>จำนวน</label>
+            <input className="input tabular" type="text" inputMode="decimal" placeholder="0" value={qty} onChange={e=>setQty(filterDecimalInput(e.target.value))} onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+          </div>
+          <div className="field" style={{flex:"0 0 90px"}}><label>หน่วย</label>
+            <select className="input" value={unit} onChange={e=>setUnit(e.target.value)}>
+              {INCOME_UNITS.map(u=><option key={u} value={u}>{u}</option>)}
+            </select>
+          </div>
+          <div className="field" style={{flex:"1 1 100px"}}><label>ราคาต่อ{unit==="กก." ? "กก." : "ชิ้น"}</label>
+            <input className="input tabular" type="text" inputMode="decimal" placeholder="0.00" value={price} onChange={e=>setPrice(filterDecimalInput(e.target.value))} onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+          </div>
           <div className="field" style={{flex:"1 1 120px"}}><label>จำนวนเงิน</label>
-            <input className="input tabular" type="number" min="0" step="1" value={amount} onChange={e=>setAmount(e.target.value)} onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+            {useQtyPrice ? (
+              <input className="input tabular" value={money(lineAmount)} disabled title="คิดจาก จำนวน × ราคา"/>
+            ) : (
+              <input className="input tabular" type="text" inputMode="decimal" placeholder="หรือพิมพ์ยอดเอง" value={amount} onChange={e=>setAmount(filterDecimalInput(e.target.value))} onKeyDown={e=>{if(e.key==="Enter") addPendingItem();}}/>
+            )}
           </div>
           <button className="btn" onClick={addPendingItem}><Icon name="plus" size={16}/>เพิ่มรายการ</button>
         </div>
@@ -3180,7 +3226,10 @@ function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, 
             <div style={{display:"flex",flexDirection:"column",gap:6}}>
               {pendingItems.map(p=>(
                 <div key={p.id} style={{display:"flex",alignItems:"center",gap:8,padding:"7px 10px",border:"1px solid var(--border)",borderRadius:"var(--radius)",background:"var(--surface-2)"}}>
-                  <span style={{flex:1}}>{p.description}</span>
+                  <span style={{flex:1}}>
+                    {p.description}
+                    {incomeLineDetail(p) && <span className="tabular" style={{color:"var(--ink-muted)",fontSize:13,marginLeft:8}}>{incomeLineDetail(p)}</span>}
+                  </span>
                   <span className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(p.amount)} ฿</span>
                   <button className="icon-btn" title="ลบรายการนี้" style={{color:"var(--danger)"}} onClick={()=>removePendingItem(p.id)}>
                     <Icon name="x" size={15}/>
@@ -3228,7 +3277,12 @@ function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, 
                             {lineItems[0].description}
                             <span className="round-badge">{lineItems.length} รายการ</span>
                           </span>
-                        ) : lineItems[0].description}
+                        ) : (
+                          <>
+                            {lineItems[0].description}
+                            {incomeLineDetail(lineItems[0]) && <div className="tabular" style={{color:"var(--ink-muted)",fontSize:12.5,fontWeight:500}}>{incomeLineDetail(lineItems[0])}</div>}
+                          </>
+                        )}
                       </td>
                       <td className="tabular" style={{fontWeight:700,color:"var(--money)"}}>{money(i.amount)} ฿</td>
                       <td>
@@ -3246,11 +3300,12 @@ function IncomePage({extraIncome, bills, advances, onAddIncome, onDeleteIncome, 
                       <tr>
                         <td colSpan={4} style={{background:"var(--bg-2)",padding:"10px 14px"}}>
                           <table className="data-table" style={{background:"transparent"}}>
-                            <thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead>
+                            <thead><tr><th>รายการ</th><th>จำนวน × ราคา</th><th>จำนวนเงิน</th></tr></thead>
                             <tbody>
                               {lineItems.map(li=>(
                                 <tr key={li.id}>
                                   <td className="item-name-ink">{li.description}</td>
+                                  <td className="tabular" style={{color:"var(--ink-muted)"}}>{incomeLineDetail(li) || "-"}</td>
                                   <td className="tabular">{money(li.amount)} ฿</td>
                                 </tr>
                               ))}

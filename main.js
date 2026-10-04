@@ -299,10 +299,19 @@ async function regenerateExcel(data) {
   wsIncome.columns = [
     { header: "วันที่", key: "date", width: 14 },
     { header: "รายการ", key: "desc", width: 30 },
+    { header: "จำนวน", key: "qty", width: 10 },
+    { header: "หน่วย", key: "unit", width: 8 },
+    { header: "ราคาต่อหน่วย", key: "price", width: 14 },
     { header: "จำนวนเงิน", key: "amount", width: 14 },
   ];
   (data.extraIncome || []).forEach((i) => {
-    wsIncome.addRow({ date: i.date, desc: i.description, amount: i.amount });
+    const lines = i.items || [{ description: i.description, amount: i.amount }];
+    lines.forEach((li) => {
+      wsIncome.addRow({
+        date: i.date, desc: li.description, amount: li.amount,
+        qty: li.qty || "", unit: li.unit || "", price: li.price || "",
+      });
+    });
   });
   wsIncome.getRow(1).font = { bold: true };
 
