@@ -1395,6 +1395,7 @@ function App(){
   function issueIncomeReceipt(item){
     const lineItems = item.items || [{ id:item.id, description:item.description, amount:item.amount }];
     const bill = {
+      isIncome: true,
       id: item.id,
       no: item.no || "-",
       date: item.createdAt,
@@ -2553,11 +2554,16 @@ async function printReceipt(mmWidth){
   window.print();
 }
 
+const numTrim = n => (Number(n)||0).toLocaleString("th-TH",{minimumFractionDigits:0,maximumFractionDigits:2});
+
 function ReceiptModal({bill, onClose, storeName, printWidthMm, fontScale}){
   const stats = billStats(bill);
   const groups = useMemo(()=>groupReceiptItems(bill.items),[bill.items]);
   const widthMm = printWidthMm || 80;
   const contentWidthMm = Math.max(widthMm - 2, 1);
+  // ใบเสร็จรายรับเสริมไม่แสดง .00 (เลขยาวจนช่องราคาขึ้นบรรทัดใหม่) — ทศนิยมจริงอย่าง 8.5 ยังแสดงอยู่
+  const fmtMoney = bill.isIncome ? numTrim : money;
+  const fmtKg = bill.isIncome ? numTrim : kg;
 
   useEffect(()=>{
     if(!hasDesktop) return;
@@ -2593,16 +2599,16 @@ function ReceiptModal({bill, onClose, storeName, printWidthMm, fontScale}){
                 {groups.map(g=>(
                   <tr key={g.itemId}>
                     <td>{g.name}</td>
-                    <td>{g.mode==="weight" ? kg(g.netSum) : g.qtySum}</td>
-                    <td>{money(g.avgPrice)}</td>
-                    <td>{money(g.amountSum)}</td>
+                    <td>{g.mode==="weight" ? fmtKg(g.netSum) : g.qtySum}</td>
+                    <td>{fmtMoney(g.avgPrice)}</td>
+                    <td>{fmtMoney(g.amountSum)}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
             <hr/>
-            {stats.weight>0 && <div className="r-line"><span>น้ำหนักรวม</span><b>{kg(stats.weight)} กก.</b></div>}
-            <div className="r-total"><span>ยอดชำระ</span><span>{money(stats.amount)} ฿</span></div>
+            {stats.weight>0 && <div className="r-line"><span>น้ำหนักรวม</span><b>{fmtKg(stats.weight)} กก.</b></div>}
+            <div className="r-total"><span>ยอดชำระ</span><span>{fmtMoney(stats.amount)} ฿</span></div>
             <div className="r-foot">ขอบคุณที่ใช้บริการ<br/>โปรดเก็บใบเสร็จไว้เป็นหลักฐาน</div>
           </div>
         </div>
